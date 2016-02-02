@@ -61,27 +61,52 @@ int openTCPSocket(uint16_t serverPort, int* socketd) {
   @return TCPOK si todo fue correcto
           TCPERR_ARGS/ACCEPT/PTHREAD en caso de error con estás funciones
 */
-int acceptTCPSocket(int socketd, void* (*handleConnection)(void*), tcpsocket_args* conn_struct) {
+//int acceptTCPSocket(int socketd, void* (*handleConnection)(void*), tcpsocket_args* conn_struct) {
+//    int acceptd=0;
+//
+//    /* Control de errores */
+//    if(socketd==-1 || handleConnection==NULL) {
+//        return TCPERR_ARGS;
+//    }
+//
+//    /* Acepta la conexión */
+//    acceptd=accept(socketd,(struct sockaddr *)&(conn_struct->client),&(conn_struct->clientlen));
+//    if(acceptd==-1) {
+//        return TCPERR_ACCEPT;
+//    }
+//
+//    /* Lanza un hilo orientado a esa conexión */
+//    if(pthread_create(&(conn_struct->user_thread),NULL, handleConnection, (void*)conn_struct)!=0) {
+//        return TCPERR_PTHREAD;
+//    }
+//
+//    return TCPOK;
+//}
+
+/**
+  @brief Acepta una conexion socket
+  @param socketd: Descriptor del socket escuchado
+  @param *conn_struct: estructura de datos de la conexion
+  @return TCPOK si todo fue correcto
+          TCPERR_ARGS/ACCEPT/PTHREAD en caso de error con estás funciones
+*/
+int acceptTCPSocket(int socketd, tcpsocket_args* conn_struct) {
     int acceptd=0;
 
     /* Control de errores */
-    if(socketd==-1 || handleConnection==NULL) {
+    if(socketd==-1 || conn_struct==NULL) {
         return TCPERR_ARGS;
     }
 
     /* Acepta la conexión */
-    acceptd=accept(socketd,(struct sockaddr *)&(conn_struct->client),&(conn_struct->clientlen));
+    conn_struct->acceptd=accept(socketd,(struct sockaddr *)&(conn_struct->client),&(conn_struct->clientlen));
     if(acceptd==-1) {
         return TCPERR_ACCEPT;
     }
 
-    /* Lanza un hilo orientado a esa conexión */
-    if(pthread_create(&(conn_struct->user_thread),NULL, handleConnection, (void*)conn_struct)!=0) {
-        return TCPERR_PTHREAD;
-    }
-
     return TCPOK;
 }
+
 
 /**
   @brief Envia a traves del socket TCP los datos

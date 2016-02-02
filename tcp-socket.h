@@ -1,13 +1,18 @@
 #ifndef __TCP_SOCKET_H__
 #define __TCP_SOCKET_H__
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+
+
 /* Estructuras de datos */
 typedef struct {
     int socketd, acceptd; 
     socklen_t clientlen; 
     struct sockaddr_in client;
-    void* moreargs;
-    pthread_t user_thread;
+//    void* moreargs;
+//    pthread_t user_thread;
 }tcpsocket_args ;
 
 /* Valores de retorno */
@@ -26,7 +31,8 @@ typedef struct {
 
 /* Funciones */
 int openTCPSocket(uint16_t serverPort, int* socketd);
-int acceptTCPSocket(int socketd, void* (handleConnection)(void*), tcpsocket_args* user_struct);
+//int acceptTCPSocket(int socketd, void* (handleConnection)(void*), tcpsocket_args* user_struct);
+int acceptTCPSocket(int socketd, tcpsocket_args* conn_struct);
 int sendTCPSocket(int socketd, void* data, size_t len);
 int rcvTCPSocket(int socketd, void* data, size_t maxlen, size_t* len);
 #endif
