@@ -46,6 +46,9 @@ int server(uint16_t port) {
                     if(rcvTCPSocket(i, data, 65500, &len) < 0) {
                         return -4;
                     }
+                    if(sendTCPSocket(i, "PONG", 4) < 0) {
+                        return -5;
+                    }
                     printf("%s", data);
                 }
             }
@@ -54,6 +57,6 @@ int server(uint16_t port) {
 
 }
 int main(int argc, char** argv) {
-    server(atoi(argv[1]));
+    printf("Resultado llamada al servidor %d\n",server(atoi(argv[1])));
 }
 
