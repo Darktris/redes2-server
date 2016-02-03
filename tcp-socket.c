@@ -158,5 +158,5 @@ int rcvTCPSocket(int socketd, void* data, size_t maxlen, size_t* len) {
         return TCPERR_RECV;
     }
     *len=n;
-    return TCPOK;
+    return n==0?TCPCONN_CLOSED:TCPOK;
 }

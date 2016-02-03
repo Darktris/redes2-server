@@ -16,6 +16,7 @@ typedef struct {
 }tcpsocket_args ;
 
 /* Valores de retorno */
+#define TCPCONN_CLOSED 1
 #define TCPOK 0
 #define TCPERR_ARGS -1
 #define TCPERR_SOCKET -2
