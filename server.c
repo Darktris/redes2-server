@@ -1,3 +1,4 @@
+/* vim: set ts=4 sw=4 et: */
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
@@ -6,11 +7,12 @@
 #include <netinet/in.h>
 #include <sys/select.h>
 #include <sys/time.h>
+#include <unistd.h>
+#include <strings.h>
 #include "tcp-socket.h"
 
 pthread_mutex_t mutex_conn;
-fd_set connections, read;
-
+fd_set connections, readable;
 
 int server(uint16_t port) {
 	int socketd, conn_socket;
@@ -27,12 +29,12 @@ int server(uint16_t port) {
 	FD_SET(socketd, &connections);
 
 	while(1) {
-		read = connections;
-		if(select(FD_SETSIZE, &read,NULL,NULL,NULL) < 0) {
+		readable = connections;
+		if(select(FD_SETSIZE, &readable,NULL,NULL,NULL) < 0) {
 			return -2;
 		}
 		for(i=0; i < FD_SETSIZE; i++) {
-			if(FD_ISSET(i, &read)) {
+			if(FD_ISSET(i, &readable)) {
 
 				/* Atencion a conexion entrante */
 				if(i==socketd) {
@@ -45,6 +47,7 @@ int server(uint16_t port) {
 				/* Atencion al resto de sockets */
 				else {
 					//pthread_create
+                    bzero(data,65500);
 					switch(rcvTCPSocket(i, data, 65500, &len)) {
 						case TCPCONN_CLOSED:
 							close(i);
@@ -55,7 +58,7 @@ int server(uint16_t port) {
 							if(sendTCPSocket(i, "PONG", 4) < 0) {
 								return -5;
 							}
-							printf("%s", data);
+							printf("%s [%d]\n", data, len);
 							break;
 						default:
 							return -4;
