@@ -14,7 +14,7 @@
 pthread_mutex_t mutex_conn;
 fd_set connections, readable;
 
-int server(uint16_t port) {
+int server(uint16_t port, void*(*handler)(void*)) {
 	int socketd, conn_socket;
 	int set_size=1, i=0;
 	tcpsocket_args args;
@@ -34,7 +34,7 @@ int server(uint16_t port) {
 			return -2;
 		}
 		for(i=0; i < FD_SETSIZE; i++) {
-			if(FD_ISSET(i, &readable)) {
+			if(isConnected(i)) {
 
 				/* Atencion a conexion entrante */
 				if(i==socketd) {
@@ -42,23 +42,25 @@ int server(uint16_t port) {
 						return -3;
 					}
 
-					FD_SET(args.acceptd, &connections);
+					addConnection(args.acceptd);
 				} 
 				/* Atencion al resto de sockets */
 				else {
 					//pthread_create
-                    bzero(data,65500);
+                    			bzero(data,65500);
 					switch(rcvTCPSocket(i, data, 65500, &len)) {
 						case TCPCONN_CLOSED:
+							rmvConnection(i);
 							close(i);
-							FD_CLR(i,&connections);
 							break;
 						case TCPOK:
-							// Atencion del mensaje
-							if(sendTCPSocket(i, "PONG", 4) < 0) {
+							blockConnection(i);
+							if(sendTCPSocket(i, data, len) < 0) {
 								return -5;
 							}
 							printf("%s [%d]\n", data, len);
+							unblockConnection(i);
+							//pthread_create(t, NULL, handler, conn_data);
 							break;
 						default:
 							return -4;
@@ -74,23 +76,34 @@ int addConnection(int socketd) {
 	pthread_mutex_lock(&mutex_conn);
 	FD_SET(socketd, &connections);
 	pthread_mutex_unlock(&mutex_conn);
+	return 0;
 }
 
 int rmvConnection(int socketd) {
 	pthread_mutex_lock(&mutex_conn);
 	FD_CLR(socketd, &connections);
 	pthread_mutex_unlock(&mutex_conn);
+	return 0;
 }
 
 int isConnected(int socketd) {
+	int i=0;
 	pthread_mutex_lock(&mutex_conn);
-	FD_ISSET(socketd, &connections);
+	i=FD_ISSET(socketd, &connections);
 	pthread_mutex_unlock(&mutex_conn);
+	return i;
 }
-int blockSocket(int socketd) {
-	
-	return 0;
+
+int blockConnection(int socketd) {
+	return rmvConnection(socketd);
+}
+
+int unblockConnection(int socketd) {
+	if(!isConnected(socketd)) {
+		return addConnection(socketd);
+	}
+	return -1;
 }
 int main(int argc, char** argv) {
-    printf("Resultado llamada al servidor %d\n",server(atoi(argv[1])));
+    printf("Resultado llamada al servidor %d\n",server(atoi(argv[1]), NULL));
 }
