@@ -7,7 +7,11 @@
   @date 2016/02/01
   */
 #include "tcpsocket.h"
-
+#include <stdio.h>          
+#include <stdlib.h>
+#include <pthread.h>
+#include <strings.h>
+#include <unistd.h>
 /**
   @brief Abre un socket TCP para servidor
   @param port: Puerto desde el que se desea escuchar
@@ -149,5 +153,13 @@ int tcpsocket_rcv(int socketd, void* data, size_t max, size_t* len) {
         return TCPERR_RECV;
     }
     *len=n;
-    return n==0? TCPCLOSED:TCPOK;
+    return n==0? TCPCONN_CLOSED:TCPOK;
+}
+
+/**
+  @brief Cierra un socket TCP
+  @param socketd: descriptor del socket
+*/
+void tcpsocket_close(int socketd) {
+    close(socketd);
 }

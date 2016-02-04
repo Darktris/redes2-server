@@ -2,10 +2,6 @@
 #ifndef _TCPSOCKET_H
 #define _TCPSOCKET_H
 
-#include <stdio.h>          
-#include <stdlib.h>
-#include <pthread.h>
-#include <strings.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -18,7 +14,7 @@ typedef struct {
 } tcpsocket_args ;
 
 /* Valores de retorno */
-#define TCPCLOSED 1
+#define TCPCONN_CLOSED 1
 #define TCPOK 0
 #define TCPERR_ARGS -1
 #define TCPERR_SOCKET -2
@@ -37,5 +33,5 @@ int client_tcpsocket_open(uint16_t port, int* socketd);
 int tcpsocket_accept(int socketd, tcpsocket_args* args);
 int tcpsocket_snd(int socketd, void* data, size_t len);
 int tcpsocket_rcv(int socketd, void* data, size_t max, size_t* len);
-
+void tcpsocket_close(int socketd);
 #endif

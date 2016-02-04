@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <strings.h>
 #include "tcpsocket.h"
+#include "server.h"
 
 pthread_mutex_t mutex_conn;
 fd_set connections, readable;
@@ -36,24 +37,28 @@ int isConnected(int socketd) {
 	return i;
 }
 
-int blockConnection(int socketd) {
+int connection_block(int socketd) {
 	return rmvConnection(socketd);
 }
 
-int unblockConnection(int socketd) {
+int connection_unblock(int socketd) {
 	if(!isConnected(socketd)) {
 		return addConnection(socketd);
 	}
 	return -1;
 }
-
-int server(uint16_t port, void*(*handler)(void*)) {
+void sigint_handler(int sig) {
+    pthread_mutex_destroy(&mutex_conn);
+    exit(1);
+}
+int server_launch(uint16_t port, void*(*handler)(void*), void* more) {
 	int socketd, conn_socket;
 	int set_size=1, i=0;
 	tcpsocket_args args;
-	char data[65500]={0};
+	char* data;
 	size_t len;
-
+    pthread_t t;
+    conn_data* thread_data;
 	pthread_mutex_init(&mutex_conn, NULL);
 	if(server_tcpsocket_open(port, &socketd) < 0) {
 		return -1;
@@ -74,37 +79,35 @@ int server(uint16_t port, void*(*handler)(void*)) {
 					if(tcpsocket_accept(socketd,&args)) {
 						return -3;
 					}
-
+                    printf("Conexion aceptada");
 					addConnection(args.acceptd);
 				} 
 				/* Atencion al resto de sockets */
 				else {
-					//pthread_create
-                    			bzero(data,65500);
-					switch(tcpsocket_rcv(i, data, 65500, &len)) {
+                    thread_data = malloc(sizeof(conn_data));
+                    thread_data->msg = malloc(DATA_SIZE);
+                    bzero(thread_data->msg,DATA_SIZE);
+                    
+					switch(tcpsocket_rcv(i, data, DATA_SIZE, &len)) {
 						case TCPCONN_CLOSED:
 							rmvConnection(i);
 							close(i);
 							break;
 						case TCPOK:
-							blockConnection(i);
-							if(tcpsocket_snd(i, data, len) < 0) {
-								return -5;
-							}
-							printf("%s [%d]\n", data, len);
-							unblockConnection(i);
-							//pthread_create(t, NULL, handler, conn_data);
+                            printf("%s", data);
+							//connection_block(i);
+							thread_data->len=len;
+                            thread_data->more=more;
+                            pthread_create(&t, NULL, handler, thread_data);
 							break;
-						default:
+						case TCPERR_RECV:
+                            perror("");
 							return -4;
+                        case TCPERR_ARGS:
+                            return -5;
 					}
 				}
 			}
 		}
 	}
-}
-
-
-int main(int argc, char** argv) {
-    printf("Resultado llamada al servidor %d\n",server(atoi(argv[1]), NULL));
 }
