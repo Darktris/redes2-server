@@ -3,13 +3,17 @@
 #include <stdio.h>
 void* echo(void* data) {
     conn_data* thread_data = (conn_data*) data;
-    pthread_detach(pthread_self());
-    printf("Mensaje: %s\n", thread_data->msg);
-    tcpsocket_snd(thread_data->socketd, thread_data->msg, thread_data->len);
+    if(pthread_detach(pthread_self())!=0) {
+        perror("");
+    }
+    printf("Mensaje: %s\n",(char*) thread_data->msg);
+    if(tcpsocket_snd(thread_data->socketd, thread_data->msg, thread_data->len)<0) {
+        perror("");
+    }
     connection_unblock(thread_data->socketd);
     free(thread_data->msg);
     free(thread_data);
-    return 0;
+    pthread_exit(0);
 }
 
 int main(int argc, char** argv) {

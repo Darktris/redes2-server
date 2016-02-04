@@ -141,7 +141,6 @@ int tcpsocket_snd(int socketd, void* data, size_t len) {
 */
 int tcpsocket_rcv(int socketd, void* data, size_t max, size_t* len) {
     size_t n;
-    
     /* Control de errores */
     if(socketd==-1 || data==NULL || !max || len==NULL) {
         return TCPERR_ARGS;
