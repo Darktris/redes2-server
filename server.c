@@ -15,7 +15,7 @@
 
 pthread_mutex_t mutex_conn;
 fd_set connections, readable, blocked;
-
+int loop;
 int addConnection(int socketd) {
 	pthread_mutex_lock(&mutex_conn);
 	FD_SET(socketd, &connections);
@@ -31,6 +31,14 @@ int rmvConnection(int socketd) {
 }
 
 int isConnected(int socketd) {
+	int i=0;
+	pthread_mutex_lock(&mutex_conn);
+	i=FD_ISSET(socketd, &connections);
+	pthread_mutex_unlock(&mutex_conn);
+	return i;
+}
+
+int isReadable(int socketd) {
 	int i=0;
 	pthread_mutex_lock(&mutex_conn);
 	i=FD_ISSET(socketd, &readable);
@@ -63,7 +71,8 @@ int connection_isblocked(int socketd) {
 
 void sigint_handler(int sig) {
     pthread_mutex_destroy(&mutex_conn);
-    exit(1);
+    loop=0;
+
 }
 int server_launch(uint16_t port, void*(*handler)(void*), void* more) {
 	int socketd, conn_socket;
@@ -82,21 +91,20 @@ int server_launch(uint16_t port, void*(*handler)(void*), void* more) {
 	FD_ZERO(&connections);
     FD_ZERO(&blocked);
 	FD_SET(socketd, &connections);
-
-	while(1) {
+    loop=1;
+	while(loop) {
         readable = connections;
 		if(select(FD_SETSIZE, &readable,NULL,NULL,NULL) < 0) {
 			return -2;
 		}
 		for(i=0; i < FD_SETSIZE; i++) {
-			if(isConnected(i) && !connection_isblocked(i)) {
+			if(isReadable(i) && !connection_isblocked(i)) {
 
 				/* Atencion a conexion entrante */
 				if(i==socketd) {
 					if(tcpsocket_accept(socketd,&args)) {
 						return -3;
 					}
-                    printf("Conexion aceptada %d\n", args.acceptd);
 					addConnection(args.acceptd);
 
 				} 
@@ -109,10 +117,9 @@ int server_launch(uint16_t port, void*(*handler)(void*), void* more) {
 					switch(tcpsocket_rcv(i, thread_data->msg, DATA_SIZE, &thread_data->len)) {
 						case TCPCONN_CLOSED:
 							rmvConnection(i);
-							close(i);
+							tcpsocket_close(i);
 							break;
 						case TCPOK:
-                            printf("Conexion ya abierta %d\n", i);
                             thread_data->more=more;
 							connection_block(i);
                             if(pthread_create(&t, NULL, handler, thread_data)!=0) {
@@ -128,4 +135,14 @@ int server_launch(uint16_t port, void*(*handler)(void*), void* more) {
 			}
 		}
 	}
+    return 0;
+}
+
+int server_stop() {
+    if(loop) {
+        loop=0;
+        return 0;
+    }
+    pthread_mutex_destroy(&mutex_conn);
+    return -1;
 }
