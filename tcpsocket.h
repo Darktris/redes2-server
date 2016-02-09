@@ -23,13 +23,14 @@ typedef struct {
 #define TCPERR_ACCEPT -6
 #define TCPERR_SEND -7
 #define TCPERR_RECV -8
-
+#define TCPERR_NOHOST -9
+#define TCPERR_CONN -9
 /* Constantes de relevancia */
 #define BACKLOG 5
 
 /* Funciones */
 int server_tcpsocket_open(uint16_t port, int* socketd);
-int client_tcpsocket_open(uint16_t port, int* socketd);
+int client_tcpsocket_open(uint16_t port, int* socketd, char* hostname);
 int tcpsocket_accept(int socketd, tcpsocket_args* args);
 int tcpsocket_snd(int socketd, void* data, size_t len);
 int tcpsocket_rcv(int socketd, void* data, size_t max, size_t* len);

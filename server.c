@@ -1,4 +1,11 @@
 /* vim: set ts=4 sw=4 et: */
+/**
+  @file server.c
+  @brief Libreria de manejo de un servidor de sockets
+  @author Sergio Fuentes  <sergio.fuentesd@estudiante.uam.es>
+  @author Daniel Perdices <daniel.perdices@estudiante.uam.es>
+  @date 2016/02/01
+  */
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
@@ -16,21 +23,37 @@
 pthread_mutex_t mutex_conn;
 fd_set connections, readable, blocked;
 int loop;
-int addConnection(int socketd) {
+
+/**
+  @brief Añade una conexion al conjunto del select
+  @param socketd: Descriptor del socket
+  @return SERVOK
+*/
+int connection_add(int socketd) {
 	pthread_mutex_lock(&mutex_conn);
 	FD_SET(socketd, &connections);
 	pthread_mutex_unlock(&mutex_conn);
-	return 0;
+	return SERVOK;
 }
 
-int rmvConnection(int socketd) {
+/**
+  @brief Borra una conexion del conjunto del select
+  @param socketd: Descriptor del socket
+  @return SERVOK
+*/
+int connection_rmv(int socketd) {
 	pthread_mutex_lock(&mutex_conn);
 	FD_CLR(socketd, &connections);
 	pthread_mutex_unlock(&mutex_conn);
-	return 0;
+	return SERVOK;
 }
 
-int isConnected(int socketd) {
+/**
+  @brief Indica si hay una conexion abierta
+  @param socketd: Descriptor del socket
+  @return 0 si esta cerrada, cualquier valor en otro caso
+*/
+int is_connected(int socketd) {
 	int i=0;
 	pthread_mutex_lock(&mutex_conn);
 	i=FD_ISSET(socketd, &connections);
@@ -38,7 +61,12 @@ int isConnected(int socketd) {
 	return i;
 }
 
-int isReadable(int socketd) {
+/**
+  @brief Indica si hay una conexion que requiere atencion
+  @param socketd: Descriptor del socket
+  @return 0 si esta cerrada, cualquier valor en otro caso
+*/
+int is_readable(int socketd) {
 	int i=0;
 	pthread_mutex_lock(&mutex_conn);
 	i=FD_ISSET(socketd, &readable);
@@ -46,20 +74,35 @@ int isReadable(int socketd) {
 	return i;
 }
 
+/**
+  @brief Bloquea una conexion
+  @param socketd: Descriptor del socket
+  @return SERVOK
+*/
 int connection_block(int socketd) {
     pthread_mutex_lock(&mutex_conn);
     FD_SET(socketd, &blocked);
     pthread_mutex_unlock(&mutex_conn);
-    return 0;
+    return SERVOK;
 }
 
+/**
+  @brief Desbloquea una conexion
+  @param socketd: Descriptor del socket
+  @return SERVOK
+*/
 int connection_unblock(int socketd) {
     pthread_mutex_lock(&mutex_conn);
     FD_CLR(socketd, &blocked);
     pthread_mutex_unlock(&mutex_conn);
-    return 0;
+    return SERVOK;
 }
 
+/**
+  @brief Comprueba si una conexion esta bloqueada
+  @param socketd: Descriptor del socket
+  @return 0 si no esta bloqueada, otro valor si esta bloqueada
+*/
 int connection_isblocked(int socketd) {
     int i;
     pthread_mutex_lock(&mutex_conn);
@@ -68,14 +111,26 @@ int connection_isblocked(int socketd) {
     return i;
 }
 
-
+/**
+  @brief Manejador de la señal 
+  @param sig: señal recibido
+  @return 0 si no esta bloqueada, otro valor si esta bloqueada
+*/
 void sigint_handler(int sig) {
     pthread_mutex_destroy(&mutex_conn);
     loop=0;
-
 }
+
+/**
+  @brief Lanza un servidor que atiende cada mensaje recibido con la funcion handler
+  @param port: Puerto en el que abrir el servidor
+  @param handler: Rutina de atencion de los mensajes
+  @param more: Parametros adicionales que se necesiten en la rutina de atencion
+  @return SERVOK en caso de que el servidor termine correctamente
+          un numero negativo en caso de error
+*/
 int server_launch(uint16_t port, void*(*handler)(void*), void* more) {
-	int socketd, conn_socket;
+	int socketd;
 	int set_size=1, i=0;
 	tcpsocket_args args;
 	char* data;
@@ -83,53 +138,84 @@ int server_launch(uint16_t port, void*(*handler)(void*), void* more) {
     pthread_t t;
     conn_data* thread_data;
 
-    signal(SIGINT, sigint_handler);
-	pthread_mutex_init(&mutex_conn, NULL);
+    /* Control de errores */
+    if(port==0) {
+        return SERVERR_ARGS;
+    }
+
+    /* Armar la señal */
+    if(signal(SIGINT, sigint_handler)==SIG_ERR) {
+        return SERVERR_SIGNAL;
+    }
+
+    /* Inicializacion del mutes */
+	if(pthread_mutex_init(&mutex_conn, NULL)) {
+        return SERVERR_PTHREAD; 
+    }
+
+    /* Abrir puerto del servidor */
 	if(server_tcpsocket_open(port, &socketd) < 0) {
-		return -1;
+		return SERVERR_SOCKET;
 	}
+
+    /* Inicializacion de los conjuntos de descriptores de fichero */
 	FD_ZERO(&connections);
     FD_ZERO(&blocked);
 	FD_SET(socketd, &connections);
     loop=1;
-	while(loop) {
+	
+    while(loop) {
+
+        /* Se espera hasta que algun socket requiera atencion */
         readable = connections;
 		if(select(FD_SETSIZE, &readable,NULL,NULL,NULL) < 0) {
-			return -2;
+			return SERVERR_SELECT;
 		}
+
 		for(i=0; i < FD_SETSIZE; i++) {
-			if(isReadable(i) && !connection_isblocked(i)) {
+			if(is_readable(i) && !connection_isblocked(i)) {
 
 				/* Atencion a conexion entrante */
 				if(i==socketd) {
 					if(tcpsocket_accept(socketd,&args)) {
-						return -3;
+						return SERVERR_ACCEPT;
 					}
-					addConnection(args.acceptd);
+					connection_add(args.acceptd);
 
 				} 
 				/* Atencion al resto de sockets */
 				else {
                     thread_data = malloc(sizeof(conn_data));
+                    if(thread_data==NULL) {
+                        //liberar servidor
+                        return SERVERR_MALLOC;
+                    }
                     thread_data->msg = malloc(DATA_SIZE);
+                    if(thread_data->msg == NULL) {
+                        return SERVERR_MALLOC;
+                    }
                     bzero(thread_data->msg,DATA_SIZE);
-                    thread_data->socketd=i; 
+                    thread_data->socketd=i;
+
+                    /* Se recibe el mensaje */
 					switch(tcpsocket_rcv(i, thread_data->msg, DATA_SIZE, &thread_data->len)) {
 						case TCPCONN_CLOSED:
-							rmvConnection(i);
+							connection_rmv(i);
 							tcpsocket_close(i);
 							break;
 						case TCPOK:
                             thread_data->more=more;
+
+                            /* Se bloquea el socket y se lanza hilo de atencion al mensaje */
 							connection_block(i);
                             if(pthread_create(&t, NULL, handler, thread_data)!=0) {
-                                return -6;
+                                return SERVERR_PTHREAD;
                             }
 							break;
 						case TCPERR_RECV:
-							return -4;
+							return SERVERR_RCV;
                         case TCPERR_ARGS:
-                            return -5;
+                            return SERVERR_ARGS;
 					}
 				}
 			}
@@ -138,11 +224,15 @@ int server_launch(uint16_t port, void*(*handler)(void*), void* more) {
     return 0;
 }
 
+/**
+  @brief Para el servidor TCP
+  @return SERVOK si el servidor se para, SERVERR_NRUN si no hay servidor
+*/
 int server_stop() {
     if(loop) {
         loop=0;
-        return 0;
+        return SERVOK;
     }
     pthread_mutex_destroy(&mutex_conn);
-    return -1;
+    return SERVERR_NRUN;
 }

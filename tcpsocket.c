@@ -7,8 +7,9 @@
   @date 2016/02/01
   */
 #include "tcpsocket.h"
-#include <stdio.h>          
+#include <stdio.h>         
 #include <stdlib.h>
+#include <netdb.h>
 #include <pthread.h>
 #include <strings.h>
 #include <unistd.h>
@@ -57,9 +58,9 @@ int server_tcpsocket_open(uint16_t port, int* socketd) {
   @return TCPOK si todo fue correcto
           TCPERR_ARGS/SOCKET/BIND/LISTEN en caso de error con estas funciones
 */
-int client_tcpsocket_open(uint16_t port, int* socketd) { 
-    struct sockaddr_in addr; 
-
+int client_tcpsocket_open(uint16_t port, int* socketd, char* hostname) { 
+    struct sockaddr_in addr;
+    struct hostent* dest;
     /* Control de errores */
     if(socketd==NULL || !port) {
         return TCPERR_ARGS;
@@ -69,12 +70,19 @@ int client_tcpsocket_open(uint16_t port, int* socketd) {
         return TCPERR_SOCKET;
     }
 
-    /* Datos del servidor */
+    dest = gethostbyname(hostname);
+    if(dest==NULL) {
+        return TCPERR_NOHOST;
+    }
+    /* Datos del  */
     addr.sin_family = AF_INET;         
     addr.sin_port = htons(port); 
-    addr.sin_addr.s_addr = INADDR_ANY; 
+    bcopy((char *)dest->h_addr, &addr.sin_addr.s_addr, dest->h_length); 
     bzero(&addr.sin_zero,8); 
 
+    if(connect(*socketd, (struct sockaddr*) &addr, sizeof(addr)) < 0) {
+        return TCPERR_CONN;
+    }
     return TCPOK;
 }
 
@@ -125,6 +133,7 @@ int tcpsocket_snd(int socketd, void* data, size_t len) {
         if(sent==-1) {
             return TCPERR_SEND;
         }
+        data+=sent;
         rest=len-sent;
     } while(rest);
     return TCPOK;
