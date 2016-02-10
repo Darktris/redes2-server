@@ -148,7 +148,7 @@ int server_launch(uint16_t port, void*(*handler)(void*), void* more) {
         return SERVERR_SIGNAL;
     }
 
-    /* Inicializacion del mutes */
+    /* Inicializacion del mutex */
 	if(pthread_mutex_init(&mutex_conn, NULL)) {
         return SERVERR_PTHREAD; 
     }
