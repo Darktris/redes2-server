@@ -9,7 +9,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <strings.h>
-#include "tcpsocket.h"
+#include <G-2301-01-P1-tcp.h>
 
 pthread_mutex_t mutex_conn;
 fd_set connections, readable;

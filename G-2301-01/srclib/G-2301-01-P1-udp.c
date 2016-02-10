@@ -6,7 +6,7 @@
   @author Daniel Perdices <daniel.perdices@estudiante.uam.es>
   @date 2016/02/01
   */
-#include "udpsocket.h"
+#include <G-2301-01-P1-udp.h>
 
 /**
   @brief Abre un socket UDP para servidor

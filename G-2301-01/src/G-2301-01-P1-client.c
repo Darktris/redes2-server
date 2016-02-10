@@ -1,8 +1,8 @@
-#include "tcpsocket.h"
+#include <G-2301-01-P1-tcp.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <strings.h>
-#define L 70
+#define L 74
 #define HOST "localhost"
 #define PORT 7071
 
@@ -12,7 +12,7 @@ int main() {
     size_t len;
     printf("Mensaje:");
     for(i=0; i<L; i++) {
-        data[i]=(i+12)%60;
+        data[i]=(i+48);
         printf("%c", data[i]);
     }
     printf("\n");

@@ -1,6 +1,6 @@
 /* vim: set ts=4 sw=4 et: */
-#ifndef _UDPSOCKET_H
-#define _UDPSOCKET_H
+#ifndef _G_2301_01_P1_UDP_H
+#define _G_2301_01_P1_UDP_H
 
 #include <stdio.h>          
 #include <stdlib.h>

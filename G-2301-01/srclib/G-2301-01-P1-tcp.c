@@ -6,7 +6,7 @@
   @author Daniel Perdices <daniel.perdices@estudiante.uam.es>
   @date 2016/02/01
   */
-#include "tcpsocket.h"
+#include "G-2301-01-P1-tcp.h"
 #include <stdio.h>         
 #include <stdlib.h>
 #include <netdb.h>

@@ -17,8 +17,8 @@
 #include <unistd.h>
 #include <strings.h>
 #include <signal.h>
-#include "tcpsocket.h"
-#include "server.h"
+#include <G-2301-01-P1-tcp.h>
+#include "G-2301-01-P1-server.h"
 
 pthread_mutex_t mutex_conn;
 fd_set connections, readable, blocked;

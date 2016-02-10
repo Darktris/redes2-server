@@ -1,6 +1,6 @@
 /* vim: set ts=4 sw=4 et: */
-#ifndef _TCPSOCKET_H
-#define _TCPSOCKET_H
+#ifndef _G_2301_01_P1_TCP_H
+#define _G_2301_01_P1_TCP_H
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -25,7 +25,8 @@ typedef struct {
 #define TCPERR_RECV -8
 #define TCPERR_NOHOST -9
 #define TCPERR_CONN -9
-/* Constantes de relevancia */
+
+/* Constantes */
 #define BACKLOG 5
 
 /* Funciones */
@@ -35,4 +36,5 @@ int tcpsocket_accept(int socketd, tcpsocket_args* args);
 int tcpsocket_snd(int socketd, void* data, size_t len);
 int tcpsocket_rcv(int socketd, void* data, size_t max, size_t* len);
 void tcpsocket_close(int socketd);
+
 #endif

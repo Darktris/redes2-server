@@ -2,7 +2,7 @@
 #define _SERVER_H
 
 #include <pthread.h>
-#include "tcpsocket.h"
+#include <G-2301-01-P1-tcp.h>
 #define DATA_SIZE 65
 
 typedef struct {

@@ -1,0 +1,46 @@
+CC = gcc
+CFLAGS = -L$(LDIR) -I$(IDIR) -g
+LDFLAGS = -lpthread -lredes2-G-2301-01-P1
+AR = ar
+
+SDIR = src
+SLDIR = srclib
+IDIR = includes
+LDIR = lib
+ODIR = obj
+MDIR = man
+DDIR = doc
+BDIR = .
+
+_LIB = libredes2-G-2301-01-P1.a
+LIB = $(patsubst %,$(LDIR)/%,$(_LIB))
+
+_LOBJ = G-2301-01-P1-tcp.o G-2301-01-P1-udp.o G-2301-01-P1-server.o
+LOBJ = $(patsubst %,$(ODIR)/%,$(_LOBJ))
+
+_DEPS = 
+DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
+
+_OBJ = G-2301-01-P1-echo_server.o G-2301-01-P1-client.o
+OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
+
+_BIN = G-2301-01-P1-echo_server G-2301-01-P1-client
+BIN = $(patsubst %,$(BDIR)/%,$(_BIN))
+
+all: $(BIN)
+
+$(LIB): $(LOBJ)
+	$(AR) rcv $@ $^
+
+$(LOBJ):$(ODIR)/%.o: $(SLDIR)/%.c
+	$(CC) -c -o $@ $< $(CFLAGS)
+
+$(OBJ):$(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
+	$(CC) -c -o $@ $< $(CFLAGS)
+
+$(BIN):%: $(ODIR)/%.o $(LIB)
+	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
+
+.PHONY: clean
+clean:
+	@rm -fv $(BIN) $(LIB) $(OBJ) $(LOBJ)
