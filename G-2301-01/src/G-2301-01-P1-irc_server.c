@@ -22,12 +22,13 @@ void* handler(void* data) {
 	}
 	syslog(LOG_INFO, "Mensaje: %s",(char*) thread_data->msg);
 	command = IRC_UnPipelineCommands (thread_data->msg, &err, NULL);
-    syslog(LOG_INFO, "unpipelined: %s", command);
-    while(command!=NULL&&strlen(command)>1) {
+    syslog(LOG_INFO, "unpipelined: %s; command=%s", command, err);
+    do { 
         process_command(command, data);
         if(err!=0) free(err); //??
         command = IRC_UnPipelineCommands(NULL, &err, command);
-    }
+        syslog(LOG_INFO, "unpipelined: %s; command=%s", command, err);
+    } while(command!=NULL);//&&strlen(command)>1);
     
     
 	syslog(LOG_INFO, "Negra caderona <3");
