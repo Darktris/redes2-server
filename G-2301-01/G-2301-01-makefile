@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -L$(LDIR) -I$(IDIR) -g
-LDFLAGS = -lpthread -lircredes -lredes2-G-2301-01-P1 
+LDFLAGS = -lpthread -lircredes -lirctad -lredes2-G-2301-01-P1 
 AR = ar
 
 SDIR = src

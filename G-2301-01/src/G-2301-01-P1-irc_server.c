@@ -10,15 +10,19 @@ typedef int(*comm_t)(char*, void*);
 
 comm_t commands[NCOMMANDS];
 int process_command(char* command, void* data);
+
+
+
 void* handler(void* data) {
 	conn_data* thread_data = (conn_data*) data;
-	char* command;
+	char* command="im not empty";
     char* err;
     if(pthread_detach(pthread_self())!=0) {
 		perror("");
 	}
 	syslog(LOG_INFO, "Mensaje: %s",(char*) thread_data->msg);
 	command = IRC_UnPipelineCommands (thread_data->msg, &err, NULL);
+    syslog(LOG_INFO, "unpipelined: %s", command);
     while(command!=NULL&&strlen(command)>1) {
         process_command(command, data);
         if(err!=0) free(err); //??
@@ -32,13 +36,17 @@ void* handler(void* data) {
 	free(thread_data);
     return 0;	
 }
+
+
 int init_commands() {
     int i=0;
     for(i=0;i<NCOMMANDS;i++)
         commands[i]=no_command;
     commands[NICK]=nick;
-
+    commands[USER]=user;
 }
+
+
 int process_command(char* command, void* data) {
     long ret;
     int i;
@@ -53,6 +61,8 @@ int process_command(char* command, void* data) {
 
     return commands[ret](command, data);
 }
+
+
 int main(int argc, char** argv) {
 	int ret;
     init_commands();   
@@ -61,4 +71,5 @@ int main(int argc, char** argv) {
 	ret = server_launch(atoi(argv[1]), handler, NULL);
 	printf("Retorno del servidor: %d\n",ret);
 	syslog(LOG_INFO, "Retorno del servidor: %d",ret);
+    server_stop();
 }

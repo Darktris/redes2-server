@@ -16,14 +16,16 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <strings.h>
+#include <string.h>
 #include <signal.h>
+#include <arpa/inet.h>
 #include <G-2301-01-P1-tcp.h>
 #include "G-2301-01-P1-server.h"
 
 pthread_mutex_t mutex_conn;
 fd_set connections, readable, blocked;
 int loop;
-
+char ips[FD_SETSIZE][16];
 /**
   @brief Añade una conexion al conjunto del select
   @param socketd: Descriptor del socket
@@ -112,6 +114,16 @@ int connection_isblocked(int socketd) {
 }
 
 /**
+  @brief Devuelve la ip asociada a un socked
+  @param socketd: Descriptor del socket
+  @return La ip del socket en decimal
+*/
+char* get_ip_from_connection(int socketd) {
+    return ips[socketd];
+}
+
+
+/**
   @brief Manejador de la señal 
   @param sig: señal recibido
   @return 0 si no esta bloqueada, otro valor si esta bloqueada
@@ -180,6 +192,7 @@ int server_launch(uint16_t port, void*(*handler)(void*), void* more) {
 					if(tcpsocket_accept(socketd,&args)) {
 						return SERVERR_ACCEPT;
 					}
+                    strcpy(ips[args.acceptd], inet_ntoa(args.client.sin_addr));
 					connection_add(args.acceptd);
 
 				} 
@@ -229,10 +242,12 @@ int server_launch(uint16_t port, void*(*handler)(void*), void* more) {
   @return SERVOK si el servidor se para, SERVERR_NRUN si no hay servidor
 */
 int server_stop() {
+    int i;
     if(loop) {
         loop=0;
         return SERVOK;
     }
+    for(i=0;i<FD_SETSIZE; i++) close(i); 
     pthread_mutex_destroy(&mutex_conn);
     return SERVERR_NRUN;
 }

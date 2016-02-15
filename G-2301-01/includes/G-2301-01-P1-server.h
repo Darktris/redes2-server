@@ -26,5 +26,6 @@ typedef struct {
 int server_launch(uint16_t port,  void*(*handler)(void*), void* more);
 int connection_block(int socketd);
 int connection_unblock(int socketd);
-
+int server_stop(); 
+char* get_ip_from_connection(int socketd);
 #endif 
