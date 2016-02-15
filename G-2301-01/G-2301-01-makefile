@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -L$(LDIR) -I$(IDIR) -g
-LDFLAGS = -lpthread -lredes2-G-2301-01-P1
+LDFLAGS = -lpthread -lircredes -lredes2-G-2301-01-P1 
 AR = ar
 
 SDIR = src
@@ -15,16 +15,16 @@ BDIR = .
 _LIB = libredes2-G-2301-01-P1.a
 LIB = $(patsubst %,$(LDIR)/%,$(_LIB))
 
-_LOBJ = G-2301-01-P1-daemon.o G-2301-01-P1-tcp.o G-2301-01-P1-udp.o G-2301-01-P1-server.o
+_LOBJ = G-2301-01-P1-daemon.o G-2301-01-P1-tcp.o G-2301-01-P1-udp.o G-2301-01-P1-server.o G-2301-01-P1-irc.o
 LOBJ = $(patsubst %,$(ODIR)/%,$(_LOBJ))
 
 _DEPS = 
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = G-2301-01-P1-echo_server.o G-2301-01-P1-client.o
+_OBJ = G-2301-01-P1-echo_server.o G-2301-01-P1-client.o G-2301-01-P1-irc_server.o 
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
-_BIN = G-2301-01-P1-echo_server G-2301-01-P1-client
+_BIN = G-2301-01-P1-echo_server G-2301-01-P1-client G-2301-01-P1-irc_server
 BIN = $(patsubst %,$(BDIR)/%,$(_BIN))
 
 all: $(BIN)
