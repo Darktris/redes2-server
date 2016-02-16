@@ -6,12 +6,64 @@
 #include <stdio.h>
 #include <syslog.h>
 #define NCOMMANDS 99999
+#define MAX_USERS 100
+#define MAX_USERNAME 20
+#define MAX_NICK 20
+#define IRCSVROK 0
+#define IRCSVRERR_MALLOC -1
+#define IRCSVRERR_MAXLEN -2
+#define IRCSVRERR_ARGS -3
 typedef int(*comm_t)(char*, void*);
 
 comm_t commands[NCOMMANDS];
 int process_command(char* command, void* data);
 
+char** users;
+char** nicks;
 
+int set_user(int socketd, char* user) {
+    if(user==NULL) 
+        return IRCSVRERR_ARGS;
+    if(strlen(user)>MAX_USERNAME)
+        return IRCSVRERR_MAXLEN;
+    if(users[socketd]==NULL) {
+        users[socketd]=malloc(sizeof(MAX_USERNAME));
+       if(users[socketd]==NULL) {
+            return IRCSVRERR_MALLOC;
+       } 
+    }
+    strcpy(users[socketd], user);
+    return IRCSVROK;
+}
+
+int set_nick(int socketd, char* nick) {
+    if(nick==NULL) {
+        if(nicks[socketd]!=NULL) {
+            free(nicks[socketd]);
+        }
+        nicks[socketd]=NULL;
+        return IRCSVROK; 
+    }
+
+    if(strlen(nick)>MAX_NICK)
+        return IRCSVRERR_MAXLEN;
+    if(nicks[socketd]==NULL) {
+        nicks[socketd]=malloc(sizeof(MAX_NICK));
+       if(nicks[socketd]==NULL) {
+            return IRCSVRERR_MALLOC;
+       } 
+    }
+    strcpy(nicks[socketd], nick);
+    return IRCSVROK;
+}
+
+char* get_nick(int socketd) {
+    return nicks[socketd];
+}
+
+char* get_user(int socketd) {
+    return users[socketd];
+}
 
 void* handler(void* data) {
 	conn_data* thread_data = (conn_data*) data;
@@ -24,11 +76,13 @@ void* handler(void* data) {
 	command = IRC_UnPipelineCommands (thread_data->msg, &err, NULL);
     syslog(LOG_INFO, "unpipelined: %s; command=%s", command, err);
     do { 
-        process_command(command, data);
+        if(strlen(command)>1) {
+            process_command(command, data);
+        }
         if(err!=0) free(err); //??
         command = IRC_UnPipelineCommands(NULL, &err, command);
         syslog(LOG_INFO, "unpipelined: %s; command=%s", command, err);
-    } while(command!=NULL);//&&strlen(command)>1);
+    } while(command!=NULL);
     
     
 	syslog(LOG_INFO, "Negra caderona <3");
@@ -47,6 +101,19 @@ int init_commands() {
     commands[USER]=user;
 }
 
+int init_memspace() {
+    users=malloc(sizeof(char*)*MAX_USERS);
+    if(users==NULL) 
+        return IRCSVRERR_MALLOC;
+    nicks=malloc(sizeof(char*)*MAX_USERS);
+    if(nicks==NULL) {
+        free(users);
+        return IRCSVRERR_MALLOC;
+    }
+    bzero(users, sizeof(char*)*MAX_USERS);
+    bzero(nicks, sizeof(char*)*MAX_USERS);
+    return IRCSVROK;
+}
 
 int process_command(char* command, void* data) {
     long ret;

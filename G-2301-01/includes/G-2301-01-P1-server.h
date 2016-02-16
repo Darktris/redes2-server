@@ -3,7 +3,7 @@
 
 #include <pthread.h>
 #include <G-2301-01-P1-tcp.h>
-#define DATA_SIZE 65
+#define DATA_SIZE 2000
 
 typedef struct {
     int socketd;

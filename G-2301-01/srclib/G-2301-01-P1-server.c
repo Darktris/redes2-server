@@ -181,6 +181,7 @@ int server_launch(uint16_t port, void*(*handler)(void*), void* more) {
         /* Se espera hasta que algun socket requiera atencion */
         readable = connections;
 		if(select(FD_SETSIZE, &readable,NULL,NULL,NULL) < 0) {
+            server_stop();
 			return SERVERR_SELECT;
 		}
 

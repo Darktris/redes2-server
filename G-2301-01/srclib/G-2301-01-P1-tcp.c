@@ -12,7 +12,9 @@
 #include <netdb.h>
 #include <pthread.h>
 #include <strings.h>
+#include <string.h>
 #include <unistd.h>
+#include <syslog.h>
 /**
   @brief Abre un socket TCP para servidor
   @param port: Puerto desde el que se desea escuchar
@@ -121,12 +123,13 @@ int tcpsocket_accept(int socketd, tcpsocket_args* args) {
 */
 int tcpsocket_snd(int socketd, void* data, size_t len) {
     int sent, rest;
- 
+    char debug[200];
     /* Control de errores */
     if(socketd==-1 || data==NULL || !len) {
         return TCPERR_ARGS;
     }
-
+    memcpy(debug, data, len);
+    syslog(LOG_INFO, "sending: [%s], socketd=%d len=%lu", data, socketd, len);
     /* Envia datos por el socket hasta que se acaban */
     do {
         sent=send(socketd,data,len,0); 
