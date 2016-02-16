@@ -139,7 +139,7 @@ int main(int argc, char** argv) {
     init_commands();   
 	init_memspace();
     if(argc!=2) return -1;
-	daemonize("G-2301-01-irc");
+	//daemonize("G-2301-01-irc");
 	ret = server_launch(atoi(argv[1]), handler, NULL);
 	printf("Retorno del servidor: %d\n",ret);
 	syslog(LOG_INFO, "Retorno del servidor: %d",ret);

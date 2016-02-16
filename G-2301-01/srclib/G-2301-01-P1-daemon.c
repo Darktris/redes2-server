@@ -7,6 +7,7 @@
   @date 2016/02/10
   */
 #include <stdio.h>
+#include <stdlib.h>
 #include <syslog.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -27,7 +28,7 @@ int daemonize(char* srvcid) {
 
     pid = fork();
     if(pid<0) return DMNERR_FORK;
-    if(pid>0) return DMNOK;
+    if(pid>0) exit(0); /* Cerramos el proceso */
 
     umask(0);
     setlogmask(LOG_UPTO(LOG_INFO));
