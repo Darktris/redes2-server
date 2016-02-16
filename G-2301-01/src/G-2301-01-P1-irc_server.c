@@ -1,10 +1,12 @@
 #include "G-2301-01-P1-server.h"
+#include "G-2301-01-P1-irc_server.h"
 #include <G-2301-01-P1-irc.h>
 #include <G-2301-01-P1-daemon.h>
 #include <redes2/irc.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <syslog.h>
+
 #define NCOMMANDS 99999
 #define MAX_USERS 100
 #define MAX_USERNAME 20
@@ -16,7 +18,6 @@
 typedef int(*comm_t)(char*, void*);
 
 comm_t commands[NCOMMANDS];
-int process_command(char* command, void* data);
 
 char** users;
 char** nicks;
@@ -68,21 +69,21 @@ char* get_user(int socketd) {
 void* handler(void* data) {
 	conn_data* thread_data = (conn_data*) data;
 	char* command="im not empty";
-    char* err;
+    char* next;
     if(pthread_detach(pthread_self())!=0) {
 		perror("");
 	}
 	syslog(LOG_INFO, "Mensaje: %s",(char*) thread_data->msg);
-	command = IRC_UnPipelineCommands (thread_data->msg, &err, NULL);
-    syslog(LOG_INFO, "unpipelined: %s; command=%s", command, err);
+	next = IRC_UnPipelineCommands (thread_data->msg, &command, NULL);
+    syslog(LOG_INFO, "unpipelined: %s", command);
     do { 
         if(strlen(command)>1) {
             process_command(command, data);
         }
-        if(err!=0) free(err); //??
-        command = IRC_UnPipelineCommands(NULL, &err, command);
-        syslog(LOG_INFO, "unpipelined: %s; command=%s", command, err);
-    } while(command!=NULL);
+        if(command!=NULL) free(command); //??
+        next = IRC_UnPipelineCommands(NULL, &command, next);
+        syslog(LOG_INFO, "unpipelined: %s", command);
+    } while(next!=NULL);
     
     
 	syslog(LOG_INFO, "Negra caderona <3");
@@ -99,6 +100,8 @@ int init_commands() {
         commands[i]=no_command;
     commands[NICK]=nick;
     commands[USER]=user;
+    commands[PING]=ping;
+    commands[PONG]=pong;
 }
 
 int init_memspace() {
@@ -134,7 +137,8 @@ int process_command(char* command, void* data) {
 int main(int argc, char** argv) {
 	int ret;
     init_commands();   
-	if(argc!=2) return -1;
+	init_memspace();
+    if(argc!=2) return -1;
 	daemonize("G-2301-01-irc");
 	ret = server_launch(atoi(argv[1]), handler, NULL);
 	printf("Retorno del servidor: %d\n",ret);

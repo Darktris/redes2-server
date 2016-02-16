@@ -128,8 +128,6 @@ int tcpsocket_snd(int socketd, void* data, size_t len) {
     if(socketd==-1 || data==NULL || !len) {
         return TCPERR_ARGS;
     }
-    memcpy(debug, data, len);
-    syslog(LOG_INFO, "sending: [%s], socketd=%d len=%lu", data, socketd, len);
     /* Envia datos por el socket hasta que se acaban */
     do {
         sent=send(socketd,data,len,0); 
@@ -159,6 +157,7 @@ int tcpsocket_rcv(int socketd, void* data, size_t max, size_t* len) {
     }
     
     /* Recepción de los datos */
+    bzero(data, max);
     n=recv(socketd,data,max,0);
     if(n==-1) {
         return TCPERR_RECV;

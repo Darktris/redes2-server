@@ -244,11 +244,10 @@ int server_launch(uint16_t port, void*(*handler)(void*), void* more) {
 */
 int server_stop() {
     int i;
-    if(loop) {
-        loop=0;
-        return SERVOK;
+    if(!loop) {
+        return SERVERR_NRUN;
     }
     for(i=0;i<FD_SETSIZE; i++) close(i); 
     pthread_mutex_destroy(&mutex_conn);
-    return SERVERR_NRUN;
+    return SERVOK;
 }

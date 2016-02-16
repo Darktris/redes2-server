@@ -2,6 +2,7 @@
 #include <redes2/irc.h>
 #include <syslog.h>
 #include <G-2301-01-P1-server.h>
+#include "G-2301-01-P1-irc_server.h" 
 int nick(char* command, void* more) {
     char* prefix, *nick;
     conn_data* data = (conn_data*) more;
@@ -9,23 +10,19 @@ int nick(char* command, void* more) {
     
     syslog(LOG_INFO, "Nick called");
     IRCParse_Nick (command,&prefix,&nick);
-
-/*    switch(IRCTADUser_Add (nick, nick, nick, NULL, "", get_ip_from_connection(data->socketd))) {
-        case IRC_OK:
-            break;
-        default:
-            syslog(LOG_INFO, "Error in IRCTADUser_Add");
-    
-    } */
+    set_nick(data->socketd, nick);
     syslog(LOG_INFO, "nick: prefix=%s nick=%s", prefix, nick);
 }
 
 int user(char* command, void*more) {
-    char* prefix, *user, *modehost, *server, *realname, *msg, *comm;
+    char* prefix, *user, *modehost, *server, *realname,  *comm=NULL, *nick;
     conn_data* data = (conn_data*) more;
+    char *msg;
+    nick = get_nick(data->socketd);
     IRCParse_User (command, &prefix, &user, &modehost, &server, &realname);
+    set_user(data->socketd,user);
     syslog(LOG_INFO, "user: prefix=%s user=%s mode=%s server=%s realn=%s", prefix, user, modehost, server, realname);
-    switch(IRCTADUser_Add(user, user, realname, NULL, server, get_ip_from_connection(data->socketd))) {
+    switch(IRCTADUser_Add(user, nick, realname, NULL, server, get_ip_from_connection(data->socketd))) {
         case IRC_OK:
             syslog(LOG_INFO, "user: User successfully added");
             break;
@@ -33,14 +30,32 @@ int user(char* command, void*more) {
             syslog(LOG_INFO, "Error IRCTADUser_Add");
     }
 
-    IRCMsg_RplWelcome (&comm,prefix,user,user, user, server);
+    IRCMsg_RplWelcome (&comm,IRCSVR_NAME, nick,nick, user, server);
     syslog(LOG_INFO, "user: Reply=[%s]", comm);
-    //IRC_PipelineCommands(&msg, comm);
-//    syslog(LOG_INFO, "user: Sending [%s]", msg);
-//    syslog(LOG_INFO, "user: len=%lu", strlen(msg));
-    tcpsocket_snd(data->socketd, &comm, strlen(comm));
+    tcpsocket_snd(data->socketd, comm, strlen(comm));
 }
 
+int list(char* command, void* more) {
+    char* prefix, *channel, *target;
+    conn_data* data = (conn_data*) more;
+    char *msg;
+    
+
+}
+
+int ping(char* command, void* more) {
+    conn_data* data = (conn_data*) more;
+    char *msg, *comm, *prefix, *server, *server2;
+    IRCParse_Ping (command, &prefix, &server, &server2);
+    syslog(LOG_INFO, "ping: prefix=%s server=%s server2=%s", prefix, server, server2);
+    IRCMsg_Pong (&comm,IRCSVR_NAME,server,server2);
+    syslog(LOG_INFO, "ping: Sending=[%s]", comm);
+    tcpsocket_snd(data->socketd, comm, strlen(comm));
+}
+
+int pong(char* command, void* more) {
+    return 0;
+}
 int no_command(char* command, void* more) {
     syslog(LOG_INFO, "NYI: %s", command);
     return 0;
