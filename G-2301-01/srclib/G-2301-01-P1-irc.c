@@ -7,11 +7,14 @@ int nick(char* command, void* more) {
     char* prefix, *nick;
     conn_data* data = (conn_data*) more;
     
-    
-    syslog(LOG_INFO, "Nick called");
-    IRCParse_Nick (command,&prefix,&nick);
-    set_nick(data->socketd, nick);
-    syslog(LOG_INFO, "nick: prefix=%s nick=%s", prefix, nick);
+    if(get_user(data->socketd)==NULL) {    
+        syslog(LOG_INFO, "Nick called");
+        IRCParse_Nick (command,&prefix,&nick);
+        set_nick(data->socketd, nick);
+        syslog(LOG_INFO, "nick: prefix=%s nick=%s", prefix, nick);
+    }else {
+
+    }
 }
 
 int user(char* command, void*more) {

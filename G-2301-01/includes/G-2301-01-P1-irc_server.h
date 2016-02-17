@@ -1,7 +1,7 @@
 #ifndef _IRC_SVR_H
 #define _IRC_SVR_H
 
-#define NCOMMANDS 99999
+#define NCOMMANDS 300
 #define MAX_USERS 100
 #define MAX_USERNAME 20
 #define MAX_NICK 20

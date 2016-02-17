@@ -7,20 +7,19 @@
 #include <stdio.h>
 #include <syslog.h>
 
-#define NCOMMANDS 99999
-#define MAX_USERS 100
-#define MAX_USERNAME 20
-#define MAX_NICK 20
-#define IRCSVROK 0
-#define IRCSVRERR_MALLOC -1
-#define IRCSVRERR_MAXLEN -2
-#define IRCSVRERR_ARGS -3
 typedef int(*comm_t)(char*, void*);
 
 comm_t commands[NCOMMANDS];
 
 char** users;
 char** nicks;
+
+void repair_command(char* command) {
+    char* i=command;
+    while(*i!='\r'&&*(i+1)!='\n') i++;
+    i+=2;
+    *i='\0';
+}
 
 int set_user(int socketd, char* user) {
     if(user==NULL) 
@@ -73,18 +72,18 @@ void* handler(void* data) {
     if(pthread_detach(pthread_self())!=0) {
 		perror("");
 	}
-	syslog(LOG_INFO, "Mensaje: %s",(char*) thread_data->msg);
+	syslog(LOG_INFO, "Mensaje: [%s], len=%lu",(char*) thread_data->msg, strlen(thread_data->msg));
 	next = IRC_UnPipelineCommands (thread_data->msg, &command, NULL);
-    if(command[strlen(command)] == 0 ) puts("BIEN"); else puts("MAL");
-    syslog(LOG_INFO, "unpipelined: %s", command);
+    repair_command(command);
+    syslog(LOG_INFO, "unpipelined: %s, len=%lu", command, strlen(command));
     do { 
+        repair_command(command);
         if(strlen(command)>1) {
             process_command(command, data);
         }
         if(command!=NULL) free(command); //??
         next = IRC_UnPipelineCommands(NULL, &command, next);
         syslog(LOG_INFO, "unpipelined: %s", command);
-        if(command[strlen(command)] == 0 ) puts("BIEN"); else puts("MAL");
     } while(next!=NULL);
     
     
