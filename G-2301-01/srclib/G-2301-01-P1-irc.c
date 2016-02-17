@@ -56,6 +56,34 @@ int ping(char* command, void* more) {
 int pong(char* command, void* more) {
     return 0;
 }
+
+int join(char* command, void* more) {
+    conn_data* data = (conn_data*) more;
+    char* prefix, *channel, *key, *msg;
+    IRCParse_Join (command, &prefix, &channel, &key, &msg);
+    switch(IRCTAD_JoinChannel (channel, get_user(data->socketd), "w", key)) {
+        case IRCERR_NOVALIDUSER:
+            break;
+        case IRCERR_NOVALIDCHANNEL:
+            break;
+        case IRCERR_USERSLIMITEXCEEDED:
+            break;
+        case IRCERR_NOENOUGHMEMORY:
+            break;
+        case IRCERR_INVALIDCHANNELNAME:
+            break;
+        case IRCERR_NAMEINUSE:
+            break;
+        case IRCERR_BANEDUSERONCHANNEL:
+            break;
+        case IRCERR_NOINVITEDUSER:
+            break;
+        case IRC_OK:
+            /* Devolver mensaje Join con prefix el prefix del usuario */
+           break; 
+    
+    }
+}
 int no_command(char* command, void* more) {
     syslog(LOG_INFO, "NYI: %s", command);
     return 0;

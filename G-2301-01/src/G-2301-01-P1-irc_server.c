@@ -49,7 +49,7 @@ int set_nick(int socketd, char* nick) {
     if(strlen(nick)>MAX_NICK)
         return IRCSVRERR_MAXLEN;
     if(nicks[socketd]==NULL) {
-        nicks[socketd]=malloc(sizeof(MAX_NICK));
+        nicks[socketd]=malloc(sizeof(MAX_NICK)+1);
        if(nicks[socketd]==NULL) {
             return IRCSVRERR_MALLOC;
        } 
@@ -75,6 +75,7 @@ void* handler(void* data) {
 	}
 	syslog(LOG_INFO, "Mensaje: %s",(char*) thread_data->msg);
 	next = IRC_UnPipelineCommands (thread_data->msg, &command, NULL);
+    if(command[strlen(command)] == 0 ) puts("BIEN"); else puts("MAL");
     syslog(LOG_INFO, "unpipelined: %s", command);
     do { 
         if(strlen(command)>1) {
@@ -83,6 +84,7 @@ void* handler(void* data) {
         if(command!=NULL) free(command); //??
         next = IRC_UnPipelineCommands(NULL, &command, next);
         syslog(LOG_INFO, "unpipelined: %s", command);
+        if(command[strlen(command)] == 0 ) puts("BIEN"); else puts("MAL");
     } while(next!=NULL);
     
     
