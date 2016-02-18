@@ -83,6 +83,7 @@ int join(char* command, void* more) {
             break;
         case IRC_OK:
             /* Devolver mensaje Join con prefix el prefix del usuario */
+            // prefijo complejo  + mensaje join + rpl_topic + rpl_namereply
            break; 
     
     }
