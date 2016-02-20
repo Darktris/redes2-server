@@ -12,6 +12,8 @@ int nick(char* command, void* more) {
         IRCParse_Nick (command,&prefix,&nick);
         set_nick(data->socketd, nick);
         syslog(LOG_INFO, "nick: prefix=%s nick=%s", prefix, nick);
+        if(nick) free(nick);
+        if(prefix) free(prefix);
     }else {
 
     }
@@ -36,6 +38,12 @@ int user(char* command, void*more) {
     IRCMsg_RplWelcome (&comm,IRCSVR_NAME, nick,nick, user, server);
     syslog(LOG_INFO, "user: Reply=[%s]", comm);
     tcpsocket_snd(data->socketd, comm, strlen(comm));
+    if(prefix) free(prefix);
+    if(user) free(user);
+    if(modehost) free(modehost);
+    if(server) free(server);
+    if(realname) free(realname);
+    if(comm) free(comm);
 }
 
 int list(char* command, void* more) {
@@ -54,6 +62,11 @@ int ping(char* command, void* more) {
     IRCMsg_Pong (&comm,IRCSVR_NAME,server,server2);
     syslog(LOG_INFO, "ping: Sending=[%s]", comm);
     tcpsocket_snd(data->socketd, comm, strlen(comm));
+    if(comm) free(comm);
+    if(prefix) free(prefix);
+    if(server) free(server);
+    if(server2) free(server2);
+    if(comm) free(comm);
 }
 
 int pong(char* command, void* more) {
@@ -62,9 +75,16 @@ int pong(char* command, void* more) {
 
 int join(char* command, void* more) {
     conn_data* data = (conn_data*) more;
-    char* prefix, *channel, *key, *msg;
+    char* prefix, *prefix2, *channel, *key, *msg, *comm, *mode;
     IRCParse_Join (command, &prefix, &channel, &key, &msg);
-    switch(IRCTAD_JoinChannel (channel, get_user(data->socketd), "w", key)) {
+    syslog(LOG_INFO, "join: prefix=%s chan=%s key=%s msg=%s user=%s", prefix, channel, key, msg, get_user(data->socketd));
+    //if(IRCTADChan_Add (channel, "t", get_user(data->socketd), NULL, 0, "Default Topic")!=IRC_OK)
+      //  syslog(LOG_INFO, "join: add error");
+    IRCTAD_ShowAll();
+    IRCTAD_ShowChannels();
+    printf("user %s\n", IRCTADUser_GetUserByNick(get_nick(data->socketd)));
+    printf("user2 %s\n", get_user(data->socketd));
+    switch(IRCTAD_JoinChannel("#r","dani2","w", NULL)) {
         case IRCERR_NOVALIDUSER:
             break;
         case IRCERR_NOVALIDCHANNEL:
@@ -84,11 +104,50 @@ int join(char* command, void* more) {
         case IRC_OK:
             /* Devolver mensaje Join con prefix el prefix del usuario */
             // prefijo complejo  + mensaje join + rpl_topic + rpl_namereply
+            //IRC_ComplexUser1459 (&prefix2, get_nick(data->socketd), get_user(data->socketd), IRCTADUser_GetHostByUser(get_user(data->socketd)), NULL);
+            //syslog(LOG_INFO, "user: prefix=%s", prefix2);
+           // IRCMsg_Join (&comm, prefix2, channel, NULL, NULL);
+           // syslog(LOG_INFO, "user: join_rply=%s",comm);
+           // tcpsocket_snd(data->socketd, comm, strlen(comm));
+            printf("HEEEEEY");
            break; 
     
     }
+    syslog(LOG_INFO, "join: finished");
+}
+
+int privmsg(char* command, void* more) {
+    conn_data* data = (conn_data*) more;
+    char* prefix, *target, *msg, *prefix2, *comm;
+    char** list;
+    long n, i;
+    int socketd;
+
+    IRCParse_Privmsg (command, &prefix, &target, &msg);
+    syslog(LOG_INFO, "privmsg: prefix=%s, tar=%s msg=%s", prefix, target, msg);
+    IRC_ComplexUser1459 (&prefix2, get_nick(data->socketd), get_user(data->socketd), IRCTADUser_GetHostByUser(get_user(data->socketd)), NULL);
+    IRCMsg_Privmsg (&comm, prefix2,target,msg);
+    if(IRCTAD_ListUsersOnChannel (target, &list, &n)!=IRCERR_NOVALIDCHANNEL) {
+        for(i=0;i<n;i++) {
+            socketd = get_socketd(list[i]);
+            if(socketd!=data->socketd) {
+                connection_block(socketd);
+                tcpsocket_snd(socketd, comm, strlen(comm));
+                connection_unblock(socketd);
+            }
+        }
+    } else {
+        if(get_socketd(target)!=0) {
+            syslog(LOG_INFO, "privmsg: sending=%s", comm);
+            tcpsocket_snd(socketd, comm, strlen(comm));
+        } else {
+            syslog(LOG_INFO,"privmsg: no dest user");
+        }
+    }
+
 }
 int no_command(char* command, void* more) {
     syslog(LOG_INFO, "NYI: %s", command);
     return 0;
 }
+

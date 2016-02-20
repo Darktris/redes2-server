@@ -57,6 +57,18 @@ int set_nick(int socketd, char* nick) {
     return IRCSVROK;
 }
 
+int get_socketd(char* user) {
+    int i;
+    if(user==NULL) return 0;
+    syslog(LOG_INFO, "get_socketd=%s", user);
+    for(i=0;i<MAX_USERS;i++) {
+        if(users[i]!=NULL) {
+            if(strcmp(user, users[i]) == 0) return i;
+        }
+    }
+    return 0;
+
+}
 char* get_nick(int socketd) {
     return nicks[socketd];
 }
@@ -81,7 +93,7 @@ void* handler(void* data) {
         if(strlen(command)>1) {
             process_command(command, data);
         }
-        if(command!=NULL) free(command); //??
+        //if(command!=NULL) free(command); //??
         next = IRC_UnPipelineCommands(NULL, &command, next);
         syslog(LOG_INFO, "unpipelined: %s", command);
     } while(next!=NULL);
@@ -89,8 +101,8 @@ void* handler(void* data) {
     
 	syslog(LOG_INFO, "Negra caderona <3");
     connection_unblock(thread_data->socketd);
-	free(thread_data->msg);
-	free(thread_data);
+//	free(thread_data->msg);
+//	free(thread_data);
     return 0;	
 }
 
@@ -103,6 +115,8 @@ int init_commands() {
     commands[USER]=user;
     commands[PING]=ping;
     commands[PONG]=pong;
+    commands[JOIN]=join;
+    commands[PRIVMSG]=privmsg;
 }
 
 int init_memspace() {
@@ -145,4 +159,6 @@ int main(int argc, char** argv) {
 	printf("Retorno del servidor: %d\n",ret);
 	syslog(LOG_INFO, "Retorno del servidor: %d",ret);
     server_stop();
+    close(3);
+    perror("");
 }
