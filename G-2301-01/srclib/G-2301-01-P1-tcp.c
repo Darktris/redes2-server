@@ -40,6 +40,11 @@ int server_tcpsocket_open(uint16_t port, int* socketd) {
     addr.sin_addr.s_addr = INADDR_ANY; 
     bzero(&addr.sin_zero,8); 
 
+    int yes=1; 
+
+     if (setsockopt(*socketd,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1) { 
+        return TCPERR_BIND;
+     }  
     /* Unimos el socket al proceso */
     if(bind(*socketd,(struct sockaddr*)&addr,sizeof(addr)) == -1) {
         return TCPERR_BIND;

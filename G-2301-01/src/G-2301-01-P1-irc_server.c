@@ -6,14 +6,42 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <syslog.h>
-
+#ifndef OVERRIDEN
+    #define IRC_UnPipelineCommands _IRC_UnPipelineCommands
+#endif
 typedef int(*comm_t)(char*, void*);
 
 comm_t commands[NCOMMANDS];
 
 char** users;
 char** nicks;
+char * _IRC_UnPipelineCommands(char *string, char **command, char *str_r)
+{
+    char *p, *q;
 
+    if (string != NULL) p = string;
+    else if (str_r != NULL) p = str_r;
+    else return NULL;
+    if (*p == 0) return NULL;
+
+    if((q = strstr(p,"\r\n"))!=NULL)
+    {
+        q += 2;
+        *command = (char *) malloc((q-p+1)*sizeof(char));
+        if (*command == NULL) return NULL;
+        strncpy(*command,p, q-p);
+        (*command)[q-p] = 0;
+        return q;
+    }
+    else
+    {
+        if(strlen(p) == 0) return NULL;
+        *command = (char *) malloc((strlen(p)+1)*sizeof(char));
+        strcpy(*command, p);
+        (*command)[strlen(p)] = 0;
+        return NULL;
+    }
+}
 void repair_command(char* command) {
     char* i=command;
     while(*i!='\r'&&*(i+1)!='\n') i++;
@@ -93,7 +121,7 @@ void* handler(void* data) {
         if(strlen(command)>1) {
             process_command(command, data);
         }
-        //if(command!=NULL) free(command); //??
+        if(command!=NULL) free(command); //??
         next = IRC_UnPipelineCommands(NULL, &command, next);
         syslog(LOG_INFO, "unpipelined: %s", command);
     } while(next!=NULL);
@@ -113,6 +141,7 @@ int init_commands() {
         commands[i]=no_command;
     commands[NICK]=nick;
     commands[USER]=user;
+    commands[LIST]=list;
     commands[PING]=ping;
     commands[PONG]=pong;
     commands[JOIN]=join;
