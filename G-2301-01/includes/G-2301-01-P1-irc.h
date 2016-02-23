@@ -8,6 +8,8 @@ int pong(char* command, void* more);
 int list(char* command, void* more);
 int join(char* command, void* more);
 int privmsg(char* command, void* more);
+int part(char* command, void* more);
+int names(char* command, void* more);
 int no_command(char* command, void* more);
 
 #endif 

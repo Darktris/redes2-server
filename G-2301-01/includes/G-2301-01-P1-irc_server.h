@@ -5,6 +5,7 @@
 #define MAX_USERS 100
 #define MAX_USERNAME 20
 #define MAX_NICK 20
+#define MAX_USERS_INCHAN 20
 #define IRCSVROK 0
 #define IRCSVRERR_MALLOC -1
 #define IRCSVRERR_MAXLEN -2

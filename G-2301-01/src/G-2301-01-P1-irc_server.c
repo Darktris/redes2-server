@@ -1,6 +1,7 @@
 #include "G-2301-01-P1-server.h"
 #include "G-2301-01-P1-irc_server.h"
 #include <G-2301-01-P1-irc.h>
+#include <G-2301-01-P1-tools.h>
 #include <G-2301-01-P1-daemon.h>
 #include <redes2/irc.h>
 #include <stdlib.h>
@@ -129,8 +130,8 @@ void* handler(void* data) {
     
 	syslog(LOG_INFO, "Negra caderona <3");
     connection_unblock(thread_data->socketd);
-//	free(thread_data->msg);
-//	free(thread_data);
+  	free(thread_data->msg);
+  	free(thread_data);
     return 0;	
 }
 
@@ -146,6 +147,8 @@ int init_commands() {
     commands[PONG]=pong;
     commands[JOIN]=join;
     commands[PRIVMSG]=privmsg;
+    commands[PART]=part;
+    commands[NAMES]=names;
 }
 
 int init_memspace() {

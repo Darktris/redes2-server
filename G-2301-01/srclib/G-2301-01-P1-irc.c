@@ -2,6 +2,7 @@
 #include <redes2/irc.h>
 #include <syslog.h>
 #include <G-2301-01-P1-server.h>
+#include <G-2301-01-P1-tools.h>
 #include "G-2301-01-P1-irc_server.h" 
 int nick(char* command, void* more) {
     char* prefix, *nick;
@@ -71,6 +72,7 @@ int list(char* command, void* more) {
             }    
         } else {
             topic = IRCTADChan_GetTopic(list[i], &ts);
+            topic = "Default topic biatch";
             IRCMsg_RplList (&comm, IRCSVR_NAME, get_nick(data->socketd), list[i], "0",topic);
             syslog(LOG_INFO, "list: rply=%s", comm);
             tcpsocket_snd(data->socketd, comm, strlen(comm));
@@ -110,25 +112,31 @@ int join(char* command, void* more) {
     IRCParse_Join (command, &prefix, &channel, &key, &msg);
     syslog(LOG_INFO, "join: prefix=%s chan=%s key=%s msg=%s user=%s", prefix, channel, key, msg, get_user(data->socketd));
     syslog(LOG_INFO, "join: chan=%lu user=%lu", strlen(channel), strlen(get_user(data->socketd)));
-    //if(IRCTADChan_Add (channel, "t", get_user(data->socketd), NULL, 0, "Default Topic")!=IRC_OK)
-      //  syslog(LOG_INFO, "join: add error");
     printf("user2 %s\n", get_user(data->socketd));
     switch(IRCTAD_JoinChannel(channel,get_user(data->socketd),"w", NULL)) {
         case IRCERR_NOVALIDUSER:
+            syslog(LOG_INFO, "join: novaliduser");
             break;
         case IRCERR_NOVALIDCHANNEL:
+            syslog(LOG_INFO, "join: novalidchannel");
             break;
         case IRCERR_USERSLIMITEXCEEDED:
+            syslog(LOG_INFO, "join: usrlimit");
             break;
         case IRCERR_NOENOUGHMEMORY:
+            syslog(LOG_INFO, "join: nomem");
             break;
         case IRCERR_INVALIDCHANNELNAME:
+            syslog(LOG_INFO, "join: invalidchannelname");
             break;
         case IRCERR_NAMEINUSE:
+            syslog(LOG_INFO, "join: nameinuse");
             break;
         case IRCERR_BANEDUSERONCHANNEL:
+            syslog(LOG_INFO, "join: banned");
             break;
         case IRCERR_NOINVITEDUSER:
+            syslog(LOG_INFO, "join: noinviteuser");
             break;
         case IRC_OK:
             /* Devolver mensaje Join con prefix el prefix del usuario */
@@ -191,8 +199,58 @@ int mode(char* command, void* more) {
 }
 
 
+int part(char* command, void* more) {
+    conn_data* data = (conn_data*) more;
+    char*comm, *prefix, *prefix2, *channel, *msg;
+    char **list;
+    long n, i;
+    int socketd;
+    IRCParse_Part(command, &prefix, &channel, &msg);
+    switch(IRCTAD_PartChannel (channel, get_user(data->socketd))) {
+        case IRCERR_INVALIDUSER:
+            break;
+        default:
+            IRC_ComplexUser1459 (&prefix2, get_nick(data->socketd), get_user(data->socketd), IRCTADUser_GetHostByUser(get_user(data->socketd)), NULL);
+            IRCMsg_Part (&comm, prefix2, channel, msg);
+            if(IRCTAD_ListUsersOnChannel (channel, &list, &n)!=IRCERR_NOVALIDCHANNEL) {
+                for(i=0;i<n;i++) {
+                    socketd = get_socketd(list[i]);
+                    if(socketd!=data->socketd) {
+                        connection_block(socketd);
+                        tcpsocket_snd(socketd, comm, strlen(comm));
+                        connection_unblock(socketd);
+                    }
+                }
+            }
+            tcpsocket_snd(data->socketd, comm ,strlen(comm));
+
+    }
+
+}
+
+int names(char* command, void* more) {
+    conn_data* data = (conn_data*) more;
+    char *prefix, *channel, *target, *comm;
+    char** list;
+    long i,n;
+    char *l;
+    IRCParse_Names (command, &prefix, &channel, &target);
+    if(IRCTAD_ListUsersOnChannel (channel, &list, &n)!=IRCERR_NOVALIDCHANNEL) {
+        l=calloc(sizeof(MAX_NICK)*MAX_USERS_INCHAN, 1);
+        for(i=0;i<n;i++) {
+            l=strcat(l, list[i]);
+        }
+    }
+    IRCMsg_RplNamReply (&comm, IRCSVR_NAME, get_nick(data->socketd), "=", channel, l);
+    syslog(LOG_INFO, "names: rply %s, l=%s, prefx=%s channel=%s ", comm, l, prefix, channel);
+    tcpsocket_snd(data->socketd, comm, strlen(comm));
+    IRCMsg_RplEndOfNames (&comm, IRCSVR_NAME, get_nick(data->socketd), channel);
+    tcpsocket_snd(data->socketd, comm, strlen(comm));
+} 
+
 int no_command(char* command, void* more) {
     syslog(LOG_INFO, "NYI: %s", command);
     return 0;
 }
+
 
