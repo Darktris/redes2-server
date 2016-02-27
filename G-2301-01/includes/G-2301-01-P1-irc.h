@@ -9,6 +9,7 @@ int list(char* command, void* more);
 int join(char* command, void* more);
 int privmsg(char* command, void* more);
 int part(char* command, void* more);
+int topic(char* command, void* more);
 int names(char* command, void* more);
 int no_command(char* command, void* more);
 

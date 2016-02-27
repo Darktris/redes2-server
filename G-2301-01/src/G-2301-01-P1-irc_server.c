@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <syslog.h>
-#ifndef OVERRIDEN
+#ifdef OVERRIDEN
     #define IRC_UnPipelineCommands _IRC_UnPipelineCommands
 #endif
 typedef int(*comm_t)(char*, void*);
@@ -149,6 +149,7 @@ int init_commands() {
     commands[PRIVMSG]=privmsg;
     commands[PART]=part;
     commands[NAMES]=names;
+    commands[TOPIC]=topic;
 }
 
 int init_memspace() {

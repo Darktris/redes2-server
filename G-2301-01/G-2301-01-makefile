@@ -3,6 +3,7 @@ CFLAGS = -L$(LDIR) -I$(IDIR) -g
 LDFLAGS = -lpthread -lircredes -lirctad -lredes2-G-2301-01-P1 
 AR = ar
 
+TAR_FILE= G-2301-01-P1.tar.gz
 SDIR = src
 SLDIR = srclib
 IDIR = includes
@@ -41,6 +42,14 @@ $(OBJ):$(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
 $(BIN):%: $(ODIR)/%.o $(LIB)
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
+compress: clean doc
+	tar -zcvf $(TAR_FILE) *
+
+doc: 
+	doxygen
+
 .PHONY: clean
 clean:
-	@rm -fv $(BIN) $(LIB) $(OBJ) $(LOBJ)
+	@rm -fv $(BIN) $(LIB) $(OBJ) $(LOBJ) $(DDIR)
+	@rm -fv $(TAR_FILE)
+	@rm -fv core vgcore*  
