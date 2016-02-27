@@ -25,7 +25,7 @@ int nick(char* command, void* more) {
                case IRC_OK:
                     IRC_ComplexUser1459 (&prefix2, get_nick(data->socketd), get_user(data->socketd), IRCTADUser_GetHostByUser(get_user(data->socketd)), NULL);
                     //IRCMsg_Nick(&comm, prefix2, nick);
-                    sprintf(comm, "%s NICK :%s\r\n", prefix2, nick);
+                    sprintf(comm, ":%s NICK :%s\r\n", prefix2, nick);
                     tcpsocket_snd(data->socketd, comm, strlen(comm));
                     set_nick(data->socketd, nick);
                     break;
