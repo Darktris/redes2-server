@@ -9,7 +9,7 @@ int nick(char* command, void* more) {
     char* prefix, *nick, comm[512]={0}, *prefix2;
     conn_data* data = (conn_data*) more;
     IRCParse_Nick (command,&prefix,&nick);
-
+    
     if(get_user(data->socketd)==NULL) {    
         syslog(LOG_INFO, "Nick called");
         set_nick(data->socketd, nick);
@@ -44,10 +44,10 @@ int user(char* command, void*more) {
     char *msg;
     nick = get_nick(data->socketd);
     IRCParse_User (command, &prefix, &user, &modehost, &server, &realname);
-    set_user(data->socketd,user);
     syslog(LOG_INFO, "user: prefix=%s user=%s mode=%s server=%s realn=%s", prefix, user, modehost, server, realname);
-    switch(IRCTADUser_Add(get_user(data->socketd), nick, realname, NULL, server, get_ip_from_connection(data->socketd))) {
+    switch(IRCTADUser_Add(user, nick, realname, NULL, server, get_ip_from_connection(data->socketd))) {
         case IRC_OK:
+            set_user(data->socketd,user);
             syslog(LOG_INFO, "user: User successfully added");
             break;
         default:
@@ -165,7 +165,6 @@ int join(char* command, void* more) {
             IRCMsg_Join (&comm, prefix2, NULL, NULL, channel);
             syslog(LOG_INFO, "user: join_rply=%s",comm);
             tcpsocket_snd(data->socketd, comm, strlen(comm));
-            printf("HEEEEEY");
            break; 
     
     }
@@ -223,27 +222,31 @@ int part(char* command, void* more) {
     char **list;
     long n, i;
     int socketd;
+    IRCTAD_ShowAll();
     IRCParse_Part(command, &prefix, &channel, &msg);
-    switch(IRCTAD_PartChannel (channel, get_user(data->socketd))) {
+    syslog(LOG_INFO, "part: prefix=%s channel=%s msg=%s", prefix, channel,msg);
+    switch(IRCTAD_PartChannel (channel, IRCTADUser_GetUserByNick(get_nick(data->socketd)))) {
         case IRCERR_INVALIDUSER:
+            syslog(LOG_INFO, "part: invalid user");
             break;
         default:
             IRC_ComplexUser1459 (&prefix2, get_nick(data->socketd), get_user(data->socketd), IRCTADUser_GetHostByUser(get_user(data->socketd)), NULL);
             IRCMsg_Part (&comm, prefix2, channel, msg);
+            tcpsocket_snd(data->socketd, comm, strlen(comm));
             if(IRCTAD_ListUsersOnChannel (channel, &list, &n)!=IRCERR_NOVALIDCHANNEL) {
+                syslog(LOG_INFO, "part: n=%ld", n);
                 for(i=0;i<n;i++) {
+                    syslog(LOG_INFO, "part: %s %s sending", list[i], comm);
                     socketd = get_socketd(list[i]);
-                    if(socketd!=data->socketd) {
-                        connection_block(socketd);
-                        tcpsocket_snd(socketd, comm, strlen(comm));
-                        connection_unblock(socketd);
-                    }
-                }
+                    connection_block(socketd);
+                    tcpsocket_snd(socketd, comm, strlen(comm));
+                    connection_unblock(socketd);
+                }             
+            }else {
+                syslog(LOG_INFO,"part: novalidchannel");
             }
-            tcpsocket_snd(data->socketd, comm ,strlen(comm));
-
+            
     }
-
 }
 
 int names(char* command, void* more) {
@@ -259,7 +262,7 @@ int names(char* command, void* more) {
             l=strcat(l, list[i]);
         }
     }
-    IRCMsg_RplNamReply (&comm, IRCSVR_NAME, get_nick(data->socketd), "=", channel, l);
+    if(l) IRCMsg_RplNamReply (&comm, IRCSVR_NAME, get_nick(data->socketd), "=", channel, l);
     syslog(LOG_INFO, "names: rply %s, l=%s, prefx=%s channel=%s ", comm, l, prefix, channel);
     tcpsocket_snd(data->socketd, comm, strlen(comm));
     IRCMsg_RplEndOfNames (&comm, IRCSVR_NAME, get_nick(data->socketd), channel);
@@ -276,7 +279,7 @@ int topic(char* command, void* more) {
     char* prefix2, *comm;
     conn_data* data = (conn_data*) more;
     IRCParse_Topic (command, &prefix, &channel, &topic);
-    switch(IRCTAD_GetUserModeOnChannel (channel, get_user(data->socketd))) {
+    /*switch(IRCTAD_GetUserModeOnChannel (channel, get_user(data->socketd))) {
         case IRCUMODE_OPERATOR:
         case IRCUMODE_LOCALOPERATOR:
             IRCTADChan_SetTopic (channel,topic);
@@ -287,7 +290,7 @@ int topic(char* command, void* more) {
             break;
         case IRCERR_NOVALIDCHANNEL:
             break;
-    } 
+    } */
 
 }
 
