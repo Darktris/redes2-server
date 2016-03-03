@@ -11,6 +11,8 @@
 #define IRCSVRERR_MAXLEN -2
 #define IRCSVRERR_ARGS -3
 
+
+#define IRCSVR_MOTD "motd"
 #define IRCSVR_NAME "eps.irc.jp"
 
 int process_command(char* command, void* data);

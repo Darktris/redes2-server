@@ -59,6 +59,7 @@ int user(char* command, void*more) {
     if(server) free(server);
     if(realname) free(realname);
     if(comm) free(comm);
+    IRCTAD_ShowAll();
 }
 
 int list(char* command, void* more) {
@@ -199,7 +200,6 @@ int privmsg(char* command, void* more) {
 
 }
 
-
 int mode(char* command, void* more) {
     conn_data* data = (conn_data*) more;
     char* prefix, *channel, *mode, *user;
@@ -219,6 +219,7 @@ int part(char* command, void* more) {
     char **list;
     long n, i;
     int socketd;
+    printf("%s", get_user(data->socketd));
     IRCParse_Part(command, &prefix, &channel, &msg);
     switch(IRCTAD_PartChannel (channel, get_user(data->socketd))) {
         case IRCERR_INVALIDUSER:
@@ -262,13 +263,19 @@ int names(char* command, void* more) {
 } 
 
 int no_command(char* command, void* more) {
-    syslog(LOG_INFO, "NYI: %s", command);
+    conn_data* data = (conn_data*) more;
+    char *comm, type[12]={0};
+    sscanf(command, ":%*s %s %*s\r\n", type);
+    syslog(LOG_INFO, "No command: %s", command);
+    IRCMsg_ErrUnKnownCommand (&comm, IRCSVR_NAME, get_nick(data->socketd), type);
+    tcpsocket_snd(data->socketd, comm, strlen(comm));
+    free(comm);
     return 0;
 }
 
 int topic(char* command, void* more) {
     char* prefix, *channel, *topic;
-    char* prefix2, comm[512];
+    char* prefix2, *comm;
     long mode;
     conn_data* data = (conn_data*) more;
     IRCParse_Topic (command, &prefix, &channel, &topic);
@@ -279,8 +286,7 @@ int topic(char* command, void* more) {
     if(topic) {
         if((mode&IRCUMODE_LOCALOPERATOR==IRCUMODE_LOCALOPERATOR)) {
             IRCTADChan_SetTopic (channel,topic);
-            //IRCMsg_Topic(&comm, prefix2, channel,topic);
-            sprintf(comm, ":%s TOPIC %s :%s\r\n", prefix2, channel, topic);
+            IRCMsg_Topic(&comm, prefix2, channel,topic);
             syslog(LOG_INFO, "topic: rply=%s", comm);
             tcpsocket_snd(data->socketd, comm, strlen(comm));
         }else {
@@ -288,11 +294,11 @@ int topic(char* command, void* more) {
         } 
     } else { /*Get topic */
         time_t t;
-            topic = IRCTADChan_GetTopic(channel, &t);
-            //IRCMsg_RplTopic(&comm, prefix2, channel,topic);
-            sprintf(comm, ":%s TOPIC %s :%s\r\n", prefix2, channel, topic);
-            syslog(LOG_INFO, "topic: rply=%s", comm);
-            tcpsocket_snd(data->socketd, comm, strlen(comm));
+        topic = IRCTADChan_GetTopic(channel, &t);
+        IRCMsg_RplTopic(&comm, prefix2,get_nick(data->socketd) , channel,topic);
+
+        syslog(LOG_INFO, "topic: rply=%s", comm);
+        tcpsocket_snd(data->socketd, comm, strlen(comm));
 
     }
 }
@@ -311,6 +317,7 @@ int quit(char* command, void* more) {
     char** list, **users;
     long n, u, i, j;
     int socketd;
+    /*
     conn_data* data = (conn_data*) more;
     IRCParse_Quit (command, &prefix, &msg);
     IRC_ComplexUser1459 (&prefix2, get_nick(data->socketd), get_user(data->socketd), IRCTADUser_GetHostByUser(get_user(data->socketd)), NULL);
@@ -332,4 +339,42 @@ int quit(char* command, void* more) {
     IRCTAD_Quit(get_user(data->socketd));
     set_user(data->socketd, NULL);
     set_nick(data->socketd, NULL);
+    IRCTAD_ShowAll();
+    */
+}
+
+int motd(char* command, void* more) {
+    char* prefix, *comm;
+    conn_data *data = (conn_data*) more;
+    FILE* f_msg;
+    char msg[256], *nick;
+    nick = get_nick(data->socketd);
+    f_msg = fopen(IRCSVR_MOTD, "r");
+
+    IRCMsg_RplMotdStart(&comm, IRCSVR_NAME, get_nick(data->socketd), IRCSVR_NAME);
+    tcpsocket_snd(data->socketd, comm, strlen(comm));
+    free(comm);
+    while(fgets(msg,256,f_msg)) {
+        msg[strlen(msg)-1]=0;
+        IRCMsg_RplMotd (&comm, IRCSVR_NAME, nick, msg);
+        tcpsocket_snd(data->socketd, comm, strlen(comm));
+        free(comm);
+    }
+    fclose(f_msg);
+    IRCMsg_RplEndOfMotd(&comm, IRCSVR_NAME, nick);
+    tcpsocket_snd(data->socketd, comm, strlen(comm));
+    free(comm);
+
+
+}
+
+int away(char* command, void*more) {
+    char* prefix, *comm, *msg;
+    conn_data *data = (conn_data*) more;
+
+    IRCParse_Away(command, &prefix, &msg);
+    IRCMsg_RplNowAway(&comm, IRCSVR_NAME, get_nick(data->socketd));
+    tcpsocket_snd(data->socketd, comm, strlen(comm));
+    /**IRCTAD_SetAway(for each channel, char *user, char *msg);*/
+
 }

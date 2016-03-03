@@ -64,6 +64,7 @@ int set_user(int socketd, char* user) {
             return IRCSVRERR_MALLOC;
        } 
     }
+    syslog(LOG_INFO,"set_user: socketd=%d user=%s", socketd, user);
     strcpy(users[socketd], user);
     return IRCSVROK;
 }
@@ -152,6 +153,8 @@ int init_commands() {
     commands[NAMES]=names;
     commands[TOPIC]=topic;
     commands[QUIT]=quit;
+    commands[MOTD]=motd;
+    commands[AWAY]=away;
 }
 
 int init_memspace() {
@@ -172,10 +175,17 @@ int process_command(char* command, void* data) {
     long ret;
     int i;
     syslog(LOG_INFO, "Command: [%s]", command);
-
+    conn_data* d = (conn_data*) data;
     if(command==NULL) return -1;
     ret = IRC_CommandQuery (command);
     if(ret==IRCERR_NOCOMMAND||ret==IRCERR_UNKNOWNCOMMAND) {
+        char *comm, type[12]={0};
+        sscanf(command, "%s %*[^\r]\r\n", type);
+        syslog(LOG_INFO, "No command: %s", command);
+        IRCMsg_ErrUnKnownCommand (&comm, IRCSVR_NAME, get_nick(d->socketd), type);
+        tcpsocket_snd(d->socketd, comm, strlen(comm));
+        free(comm);
+
         syslog(LOG_INFO,"Unknown command: Go call Eloy");
         return -1;
     }
