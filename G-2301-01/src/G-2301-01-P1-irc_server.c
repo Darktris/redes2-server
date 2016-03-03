@@ -51,8 +51,11 @@ void repair_command(char* command) {
 }
 
 int set_user(int socketd, char* user) {
-    if(user==NULL) 
-        return IRCSVRERR_ARGS;
+    if(user==NULL) {
+      if(users[socketd]) free(users[socketd]);  
+      users[socketd]=NULL;
+      return IRCSVROK;
+    } 
     if(strlen(user)>MAX_USERNAME)
         return IRCSVRERR_MAXLEN;
     if(users[socketd]==NULL) {
@@ -67,9 +70,7 @@ int set_user(int socketd, char* user) {
 
 int set_nick(int socketd, char* nick) {
     if(nick==NULL) {
-        if(nicks[socketd]!=NULL) {
-            free(nicks[socketd]);
-        }
+        if(nicks[socketd]) free(nicks[socketd]);
         nicks[socketd]=NULL;
         return IRCSVROK; 
     }
@@ -150,6 +151,7 @@ int init_commands() {
     commands[PART]=part;
     commands[NAMES]=names;
     commands[TOPIC]=topic;
+    commands[QUIT]=quit;
 }
 
 int init_memspace() {

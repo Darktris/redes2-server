@@ -50,6 +50,6 @@ doc:
 
 .PHONY: clean
 clean:
-	@rm -fv $(BIN) $(LIB) $(OBJ) $(LOBJ) $(DDIR)
+	@rm -frv $(BIN) $(LIB) $(OBJ) $(LOBJ) 
 	@rm -fv $(TAR_FILE)
 	@rm -fv core vgcore*  
