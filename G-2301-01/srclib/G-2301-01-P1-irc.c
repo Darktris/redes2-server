@@ -5,10 +5,12 @@
 #include <G-2301-01-P1-tools.h>
 #include "G-2301-01-P1-irc_server.h" 
 
+int IRC_CreateSpaceList(char**, char**, long);
+
 int nick(char* command, void* more) {
-    char* prefix, *nick, comm[512]={0}, *prefix2;
+    char* prefix, *nick, comm[512]={0}, *prefix2, *msg;
     conn_data* data = (conn_data*) more;
-    IRCParse_Nick (command,&prefix,&nick);
+    IRCParse_Nick (command,&prefix,&nick, &msg);
     
     if(get_user(data->socketd)==NULL) {    
         set_nick(data->socketd, nick);
@@ -46,6 +48,42 @@ int user(char* command, void*more) {
         case IRC_OK:
             set_user(data->socketd,user);
             syslog(LOG_INFO, "user: User successfully added");
+            break;
+        case IRCERR_NOENOUGHMEMORY:
+            syslog(LOG_INFO, "user: malloc");
+            tcpsocket_close(data->socketd);
+            break;
+        case IRCERR_USERUSED: 
+            syslog(LOG_INFO, "user: user being used");
+            tcpsocket_close(data->socketd);
+            break;
+        case IRCERR_NICKUSED:
+            syslog(LOG_INFO, "user: nick being used");
+            tcpsocket_close(data->socketd);
+            break;
+        case IRCERR_REALNAMEUSED:
+            syslog(LOG_INFO, "user: realn being used");
+            tcpsocket_close(data->socketd);
+            break;
+        case IRCERR_INVALIDUSER:
+            syslog(LOG_INFO, "user: invalid user");
+            tcpsocket_close(data->socketd);
+            break;
+        case IRCERR_INVALIDNICK:
+            syslog(LOG_INFO, "user: invalid nick");
+            tcpsocket_close(data->socketd);
+            break;
+        case IRCERR_INVALIDREALNAME:
+            syslog(LOG_INFO, "user: invalid realname");
+            tcpsocket_close(data->socketd);
+            break;
+        case IRCERR_INVALIDHOST:
+            syslog(LOG_INFO, "user: invalid host");
+            tcpsocket_close(data->socketd);
+            break;
+        case  IRCERR_INVALIDIP:
+            syslog(LOG_INFO, "user: invalid ip");
+            tcpsocket_close(data->socketd);
             break;
         default:
             syslog(LOG_INFO, "Error IRCTADUser_Add");
@@ -304,20 +342,65 @@ int topic(char* command, void* more) {
 }
 
 int whois(char* command, void* more) {
-    char* prefix, *channel, *topic;
+    char* prefix, nick2[20]={0}; 
     char* prefix2, *comm;
     long mode;
     conn_data* data = (conn_data*) more;
+    char l[400]={0}, *maskarray;
+    long n=1, i;
+    char** list;
 
+    //IRCParse_Whois(command, &prefix, &nick2, &maskarray);
+    sscanf(command,"%*s %s", nick2);
+    syslog(LOG_INFO, "whois: nick2=%s mask=%s", nick2, maskarray);
+    if(strlen(nick2)<1) {
+        IRCMsg_ErrNoNickNameGiven(&comm, IRCSVR_NAME, get_nick(data->socketd));
+        tcpsocket_snd(data->socketd, comm, strlen(comm));
+        free(comm);
+
+    } else {
+        if(IRCTADUser_GetUserByNick(nick2)==NULL) {
+            IRCMsg_ErrNoSuchNick (&comm, IRCSVR_NAME, get_nick(data->socketd), nick2);
+            tcpsocket_snd(data->socketd, comm, strlen(comm));
+            free(comm);
+        }else {
+            IRCMsg_RplWhoIsUser(&comm, IRCSVR_NAME, get_nick(data->socketd), nick2, IRCTADUser_GetUserByNick(nick2), IRCTADUser_GetHostByNick(nick2), IRCTADUser_GetRealnameByNick(nick2));
+            tcpsocket_snd(data->socketd, comm, strlen(comm));
+            syslog(LOG_INFO, "whois: rply=%s", comm);
+            if(comm) free(comm);
+
+            IRCMsg_RplWhoIsServer(&comm, IRCSVR_NAME, get_nick(data->socketd), nick2, IRCSVR_NAME, IRCSVR_INFO);
+            tcpsocket_snd(data->socketd, comm, strlen(comm));
+            syslog(LOG_INFO, "whois: rply=%s", comm);
+            if(comm) free(comm);
+
+            IRCTAD_ListChannelsOfUser(IRCTADUser_GetUserByNick(nick2), &list, &n);    
+            for(i=0;i<n;i++) {
+                strcat(l, list[i]);
+                strcat(l, " ");
+            }
+            IRCMsg_RplWhoIsChannels(&comm, IRCSVR_NAME, get_nick(data->socketd), nick2, l, NULL); 
+            syslog(LOG_INFO, "whois: n=%ld l=%s", n, l);
+            tcpsocket_snd(data->socketd, comm, strlen(comm));
+            syslog(LOG_INFO, "whois: rply=%s", comm);
+            if(comm) free(comm);
+
+
+    }
+            IRCMsg_RplEndOfWhoIs(&comm, IRCSVR_NAME, get_nick(data->socketd), nick2);
+            tcpsocket_snd(data->socketd, comm, strlen(comm));
+            syslog(LOG_INFO, "whois: rply=%s", comm);
+            if(comm) free(comm);
+
+    }
 }
-
 int quit(char* command, void* more) {
     char* prefix, *msg;
     char* prefix2, *comm;
     char** list, **users;
     long n, u, i, j;
     int socketd;
-    /*
+    
     conn_data* data = (conn_data*) more;
     IRCParse_Quit (command, &prefix, &msg);
     IRC_ComplexUser1459 (&prefix2, get_nick(data->socketd), get_user(data->socketd), IRCTADUser_GetHostByUser(get_user(data->socketd)), NULL);
@@ -340,7 +423,7 @@ int quit(char* command, void* more) {
     set_user(data->socketd, NULL);
     set_nick(data->socketd, NULL);
     IRCTAD_ShowAll();
-    */
+   
 }
 
 int motd(char* command, void* more) {

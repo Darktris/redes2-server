@@ -14,6 +14,7 @@
 
 #define IRCSVR_MOTD "motd"
 #define IRCSVR_NAME "eps.irc.jp"
+#define IRCSVR_INFO "El mejor servidor IRC, ¿no?"
 
 int process_command(char* command, void* data);
 int set_user(int socketd, char* user);

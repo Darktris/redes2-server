@@ -1,6 +1,6 @@
 /* vim: set ts=4 sw=4 et: */
 /**
-  @file server.c
+  @file G-2301-01-P1-server.c
   @brief Libreria de manejo de un servidor de sockets
   @author Sergio Fuentes  <sergio.fuentesd@estudiante.uam.es>
   @author Daniel Perdices <daniel.perdices@estudiante.uam.es>

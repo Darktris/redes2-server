@@ -1,6 +1,6 @@
 /* vim: set ts=4 sw=4 et: */
 /**
-  @file tcpsocket.c
+  @file G-2301-01-P1-tcp.c
   @brief Libreria de manejo de sockets TCP
   @author Sergio Fuentes  <sergio.fuentesd@estudiante.uam.es>
   @author Daniel Perdices <daniel.perdices@estudiante.uam.es>

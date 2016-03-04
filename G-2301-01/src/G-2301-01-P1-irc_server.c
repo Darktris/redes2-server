@@ -155,6 +155,7 @@ int init_commands() {
     commands[QUIT]=quit;
     commands[MOTD]=motd;
     commands[AWAY]=away;
+    commands[WHOIS]=whois;
 }
 
 int init_memspace() {

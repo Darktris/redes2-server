@@ -45,10 +45,13 @@ $(BIN):%: $(ODIR)/%.o $(LIB)
 compress: clean doc
 	tar -zcvf $(TAR_FILE) *
 
-doc: 
+doc: Doxyfile $(ALL)
 	doxygen
+
 run: G-2301-01-P1-irc_server
 	./G-2301-01-P1-irc_server 6667
+log: 
+	tail -F /var/log/syslog | grep irc_server
 .PHONY: clean
 clean:
 	@rm -frv $(BIN) $(LIB) $(OBJ) $(LOBJ) 
