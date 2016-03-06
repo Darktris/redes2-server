@@ -1,0 +1,91 @@
+.TH "srclib/G-2301-01-P1-tools.c" 3 "Domingo, 6 de Marzo de 2016" "Practica 1 - Redes de Comunicaciones II" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+srclib/G-2301-01-P1-tools.c \- Libreria de utilidades\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+\fC#include 'G-2301-01-P1-tcp\&.h'\fP
+.br
+\fC#include <stdio\&.h>\fP
+.br
+\fC#include <stdlib\&.h>\fP
+.br
+\fC#include <netdb\&.h>\fP
+.br
+\fC#include <pthread\&.h>\fP
+.br
+\fC#include <strings\&.h>\fP
+.br
+\fC#include <string\&.h>\fP
+.br
+\fC#include <unistd\&.h>\fP
+.br
+\fC#include <syslog\&.h>\fP
+.br
+
+.SS "'defines'"
+
+.in +1c
+.ti -1c
+.RI "#define \fBstrlen\fP   \fB_strlen\fP"
+.br
+.ti -1c
+.RI "#define \fBstrcmp\fP   _strcmp"
+.br
+.in -1c
+.SS "Funciones"
+
+.in +1c
+.ti -1c
+.RI "size_t \fB_strlen\fP (const char *s)"
+.br
+.RI "\fIAbre un socket TCP para servidor\&. \fP"
+.ti -1c
+.RI "int \fB_strcmp\fP (const char *a, const char *b)"
+.br
+.in -1c
+.SH "Descripción detallada"
+.PP 
+Libreria de utilidades\&. 
+
+
+.PP
+\fBAutor:\fP
+.RS 4
+Sergio Fuentes sergio.fuentesd@estudiante.uam.es 
+.PP
+Daniel Perdices daniel.perdices@estudiante.uam.es 
+.RE
+.PP
+\fBFecha:\fP
+.RS 4
+2016/02/01 
+.RE
+.PP
+
+.SH "Documentación de las funciones"
+.PP 
+.SS "size_t _strlen (const char * s)"
+
+.PP
+Abre un socket TCP para servidor\&. 
+.PP
+\fBParámetros:\fP
+.RS 4
+\fIport\fP Puerto desde el que se desea escuchar 
+.br
+\fIsocketd\fP Puntero al descriptor del socket 
+.RE
+.PP
+\fBDevuelve:\fP
+.RS 4
+TCPOK si todo funciono correctamente TCPERR_ARGS/SOCKET/BIND/LISTEN en caso de error con estas funciones 
+.RE
+.PP
+
+.SH "Autor"
+.PP 
+Generado automáticamente por Doxygen para Practica 1 - Redes de Comunicaciones II del código fuente\&.

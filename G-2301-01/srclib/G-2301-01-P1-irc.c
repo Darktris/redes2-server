@@ -5,8 +5,6 @@
 #include <G-2301-01-P1-tools.h>
 #include "G-2301-01-P1-irc_server.h" 
 
-int IRC_CreateSpaceList(char**, char**, long);
-
 int nick(char* command, void* more) {
     char* prefix, *nick, comm[512]={0}, *prefix2, *msg;
     conn_data* data = (conn_data*) more;
@@ -50,14 +48,14 @@ int user(char* command, void*more) {
     switch(IRCTADUser_Add(user, nick, realname, NULL, server, get_ip_from_connection(data->socketd))) {
         case IRC_OK:
             set_user(data->socketd,user);
-            syslog(LOG_INFO, "user: User successfully added");
+            syslog(LOG_INFO, "user: User successfully added user=%s",user);
             break;
         case IRCERR_NOENOUGHMEMORY:
             syslog(LOG_INFO, "user: malloc");
             break;
         case IRCERR_USERUSED: 
             set_user(data->socketd, user);
-            syslog(LOG_INFO, "user: user being used");
+            syslog(LOG_INFO, "user: user being used user=%s",user);
             break;
         case IRCERR_NICKUSED:
             syslog(LOG_INFO, "user: nick being used");
@@ -93,7 +91,7 @@ int user(char* command, void*more) {
     if(server) free(server);
     if(realname) free(realname);
     if(comm) free(comm);
-    IRCTAD_ShowAll();
+    //IRCTAD_ShowAll();
 }
 
 int list(char* command, void* more) {
@@ -137,7 +135,7 @@ int list(char* command, void* more) {
 int ping(char* command, void* more) {
     conn_data* data = (conn_data*) more;
     char *msg, comm[512]={0}, *prefix, *server, *server2;
-    IRCParse_Ping (command, &prefix, &server, &server2);
+    IRCParse_Ping (command, &prefix, &server, &server2, &msg);
     //IRCMsg_Pong (&comm,IRCSVR_NAME,server,server2);
     sprintf(comm, ":%s PONG %s :%s\r\n", IRCSVR_NAME, IRCSVR_NAME,  server); 
     tcpsocket_snd(data->socketd, comm, strlen(comm));
@@ -222,7 +220,8 @@ int join(char* command, void* more) {
 
 int privmsg(char* command, void* more) {
     conn_data* data = (conn_data*) more;
-    char* prefix, *target, *msg, *prefix2, *comm;
+    char* prefix, *target, *msg, *prefix2, *comm, *comm2;
+    char* away;
     char** list;
     long n, i;
     int socketd;
@@ -242,6 +241,12 @@ int privmsg(char* command, void* more) {
     } else {
         if(get_socketd_bynick(target)!=0) {
             syslog(LOG_INFO,"privmsg: to user");
+            away = IRCTAD_GetAway(target);
+            if(away==NULL) {
+                IRCMsg_RplAway(&comm2, IRCSVR_NAME, get_nick(data->socketd), target, away);
+                tcpsocket_snd(data->socketd, comm2, strlen(comm2));
+                free(comm2);
+            }
             tcpsocket_snd(get_socketd_bynick(target), comm, strlen(comm));
         } else {
             syslog(LOG_INFO, "privmsg: no such nick");
@@ -260,6 +265,7 @@ int mode(char* command, void* more) {
     long umode;
     IRCParse_Mode(command, &prefix, &channel, &mode, &user);
     syslog(LOG_INFO,"mode: channel=%s mode=%s user=%s", channel, mode, user);
+    if(mode==NULL) return 0;
     umode=IRCTAD_GetUserModeOnChannel(channel, get_user(data->socketd));
     if(umode&IRCUMODE_LOCALOPERATOR==IRCUMODE_LOCALOPERATOR) {
         switch(IRCTADChan_SetMode(channel, mode) ){
@@ -464,7 +470,7 @@ int quit(char* command, void* more) {
     long n, u, i, j;
     int socketd;
 
-    IRCTAD_ShowAll();
+    //IRCTAD_ShowAll();
     conn_data* data = (conn_data*) more;
     IRCParse_Quit (command, &prefix, &msg);
     if(msg==NULL) msg="Como he venido, me voy.";
@@ -472,7 +478,7 @@ int quit(char* command, void* more) {
     IRCMsg_Quit (&comm, prefix2, msg);
     syslog(LOG_INFO, "quit: rply=%s, user=%s", comm, get_user(data->socketd));
     IRCTAD_ListChannelsOfUser (get_user(data->socketd), &list, &n);
-    for(i=0;i<n;i++) {
+    /*for(i=0;i<n;i++) {
         syslog(LOG_INFO, "quit: list[i]=%s", list[i]);
         IRCTAD_ListUsersOnChannel (list[i], &users, &u);
         for(j=0;j<u;j++) {
@@ -485,12 +491,12 @@ int quit(char* command, void* more) {
         }
         IRCTAD_FreeListUsersOnChannel (users, u);
         IRCTAD_PartChannel(list[i], get_user(data->socketd));
-    }
+    }*/
     tcpsocket_snd(data->socketd, comm, strlen(comm));
     if(IRCTAD_Quit(get_user(data->socketd))<0) 
         syslog(LOG_INFO, "quit: no possible");
-    IRCTADUser_DeleteByUser(get_user(data->socketd));
-    IRCTAD_ShowAll();
+    //IRCTADUser_DeleteByUser(get_user(data->socketd));
+    //IRCTAD_ShowAll();
     set_user(data->socketd, NULL);
     set_nick(data->socketd, NULL);
     connection_rmv(data->socketd);
@@ -531,7 +537,7 @@ int away(char* command, void*more) {
     IRCParse_Away(command, &prefix, &msg);
     IRCMsg_RplNowAway(&comm, IRCSVR_NAME, get_nick(data->socketd));
     tcpsocket_snd(data->socketd, comm, strlen(comm));
-    /**IRCTAD_SetAway(for each channel, char *user, char *msg);*/
+    IRCTAD_SetAway(get_user(data->socketd), msg);
 
 }
 
