@@ -149,7 +149,7 @@ int server_launch(uint16_t port, void*(*handler)(void*), void* more) {
 	size_t len;
     pthread_t t;
     conn_data* thread_data;
-
+    struct timeval tv;
     /* Control de errores */
     if(port==0) {
         return SERVERR_ARGS;
@@ -175,12 +175,13 @@ int server_launch(uint16_t port, void*(*handler)(void*), void* more) {
     FD_ZERO(&blocked);
 	FD_SET(socketd, &connections);
     loop=1;
-	
+	tv.tv_sec=3;
+    tv.tv_usec=0;
     while(loop) {
 
         /* Se espera hasta que algun socket requiera atencion */
         readable = connections;
-		if(select(FD_SETSIZE, &readable,NULL,NULL,NULL) < 0) {
+		if(select(FD_SETSIZE, &readable,NULL,NULL,&tv) < 0) {
             server_stop();
 			return SERVERR_SELECT;
 		}
@@ -226,8 +227,8 @@ int server_launch(uint16_t port, void*(*handler)(void*), void* more) {
                                 return SERVERR_PTHREAD;
                             }
 							break;
-						case TCPERR_RECV:
-							return SERVERR_RCV;
+					/*	case TCPERR_RECV:
+							return SERVERR_RCV;*/
                         case TCPERR_ARGS:
                             return SERVERR_ARGS;
 					}

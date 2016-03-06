@@ -19,7 +19,8 @@
 int process_command(char* command, void* data);
 int set_user(int socketd, char* user);
 int set_nick(int socketd, char* nick);
-int get_socketd(char* user);
+int get_socketd_bynick(char* nick);
+int get_socketd_byuser(char* user);
 char* get_user(int socketd); 
 char* get_nick(int socketd); 
 #endif

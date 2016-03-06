@@ -88,13 +88,26 @@ int set_nick(int socketd, char* nick) {
     return IRCSVROK;
 }
 
-int get_socketd(char* user) {
+int get_socketd_byuser(char* user) {
     int i;
     if(user==NULL) return 0;
     syslog(LOG_INFO, "get_socketd=%s", user);
     for(i=0;i<MAX_USERS;i++) {
         if(users[i]!=NULL) {
             if(strcmp(user, users[i]) == 0) return i;
+        }
+    }
+    return 0;
+
+}
+
+int get_socketd_bynick(char* nick) {
+    int i;
+    if(user==NULL) return 0;
+    syslog(LOG_INFO, "get_socketd=%s", nick);
+    for(i=0;i<MAX_USERS;i++) {
+        if(nicks[i]!=NULL) {
+            if(strcmp(nick, nicks[i]) == 0) return i;
         }
     }
     return 0;
@@ -156,6 +169,8 @@ int init_commands() {
     commands[MOTD]=motd;
     commands[AWAY]=away;
     commands[WHOIS]=whois;
+    commands[MODE]=mode;
+    commands[KICK]=kick;
 }
 
 int init_memspace() {
