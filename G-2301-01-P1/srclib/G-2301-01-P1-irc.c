@@ -242,7 +242,7 @@ int privmsg(char* command, void* more) {
         if(get_socketd_bynick(target)!=0) {
             syslog(LOG_INFO,"privmsg: to user");
             away = IRCTAD_GetAway(target);
-            if(away==NULL) {
+            if(away!=NULL) {
                 IRCMsg_RplAway(&comm2, IRCSVR_NAME, get_nick(data->socketd), target, away);
                 tcpsocket_snd(data->socketd, comm2, strlen(comm2));
                 free(comm2);
@@ -416,7 +416,7 @@ int whois(char* command, void* more) {
     char l[400]={0}, *maskarray;
     long n=1, i;
     char** list;
-
+    char* away;
     //IRCParse_Whois(command, &prefix, &nick2, &maskarray);
     sscanf(command,"%*s %s", nick2);
     syslog(LOG_INFO, "whois: nick2=%s mask=%s", nick2, maskarray);
@@ -454,12 +454,20 @@ int whois(char* command, void* more) {
             syslog(LOG_INFO, "whois: rply=%s", comm);
             if(comm) free(comm);
 
+            away = IRCTAD_GetAway(nick2);
+            printf("away=%s", away);
+            if(away!=NULL) {
+                IRCMsg_RplAway(&comm, IRCSVR_NAME, get_nick(data->socketd), nick2, away);
+                tcpsocket_snd(data->socketd, comm, strlen(comm));
+                free(comm);
+            }
 
-    }
-            IRCMsg_RplEndOfWhoIs(&comm, IRCSVR_NAME, get_nick(data->socketd), nick2);
-            tcpsocket_snd(data->socketd, comm, strlen(comm));
-            syslog(LOG_INFO, "whois: rply=%s", comm);
-            if(comm) free(comm);
+
+        }
+        IRCMsg_RplEndOfWhoIs(&comm, IRCSVR_NAME, get_nick(data->socketd), nick2);
+        tcpsocket_snd(data->socketd, comm, strlen(comm));
+        syslog(LOG_INFO, "whois: rply=%s", comm);
+        if(comm) free(comm);
 
     }
 }
@@ -499,6 +507,7 @@ int quit(char* command, void* more) {
     //IRCTAD_ShowAll();
     set_user(data->socketd, NULL);
     set_nick(data->socketd, NULL);
+    syslog(LOG_INFO, "quit: getuser=%s getnick=%s", get_user(data->socketd), get_nick(data->socketd));
     connection_rmv(data->socketd);
     //close(data->socketd);
     tcpsocket_close(data->socketd);
@@ -531,14 +540,22 @@ int motd(char* command, void* more) {
 }
 
 int away(char* command, void*more) {
-    char* prefix, *comm, *msg;
+    char* prefix, *comm, *msg, *away;
     conn_data *data = (conn_data*) more;
 
     IRCParse_Away(command, &prefix, &msg);
-    IRCMsg_RplNowAway(&comm, IRCSVR_NAME, get_nick(data->socketd));
-    tcpsocket_snd(data->socketd, comm, strlen(comm));
-    IRCTAD_SetAway(get_user(data->socketd), msg);
-
+    away = IRCTAD_GetAway(get_user(data->socketd));
+    if(away) {
+        IRCTAD_DeleteAway(get_user(data->socketd));
+        IRCMsg_RplUnaway (&comm, IRCSVR_NAME, get_nick(data->socketd));
+        tcpsocket_snd(data->socketd, comm, strlen(comm));
+        free(comm);
+    } else {
+        IRCMsg_RplNowAway(&comm, IRCSVR_NAME, get_nick(data->socketd));
+        tcpsocket_snd(data->socketd, comm, strlen(comm));
+        IRCTAD_SetAway(get_user(data->socketd), msg);
+        free(comm);
+    }
 }
 
 int kick(char* command, void* more) {

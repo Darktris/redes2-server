@@ -43,7 +43,7 @@ $(BIN):%: $(ODIR)/%.o $(LIB)
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 compress: clean doc
-	tar -zcvf $(TAR_FILE) *
+	tar -zcvf $(TAR_FILE) .*
 
 doc: Doxyfile $(ALL)
 	doxygen
@@ -55,5 +55,6 @@ log:
 .PHONY: clean
 clean:
 	@rm -frv $(BIN) $(LIB) $(OBJ) $(LOBJ) 
+	@mkdir -p obj lib
 	@rm -fv $(TAR_FILE)
 	@rm -fv core vgcore*  
