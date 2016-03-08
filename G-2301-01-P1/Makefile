@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -L$(LDIR) -I$(IDIR) -g
+CFLAGS = -L$(LDIR) -I$(IDIR) -g 
 LDFLAGS = -lpthread -lircredes -lirctad -lredes2-G-2301-01-P1 
 AR = ar
 
@@ -45,7 +45,7 @@ $(BIN):%: $(ODIR)/%.o $(LIB)
 compress: clean doc
 	tar -zcvf $(TAR_FILE) .*
 
-doc: Doxyfile $(ALL)
+doc: all 
 	doxygen
 
 run: G-2301-01-P1-irc_server

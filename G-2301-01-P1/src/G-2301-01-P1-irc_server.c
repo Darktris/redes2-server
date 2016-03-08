@@ -1,3 +1,11 @@
+/* vim: set ts=4 sw=4 et: */
+/**
+  @file G-2301-01-P1-irc_server.c
+  @brief Servidor IRC
+  @author Sergio Fuentes  <sergio.fuentesd@estudiante.uam.es>
+  @author Daniel Perdices <daniel.perdices@estudiante.uam.es>
+  @date 2016/02/10
+  */
 #include "G-2301-01-P1-server.h"
 #include "G-2301-01-P1-irc_server.h"
 #include <G-2301-01-P1-irc.h>
@@ -7,42 +15,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <syslog.h>
-#ifdef OVERRIDEN
-    #define IRC_UnPipelineCommands _IRC_UnPipelineCommands
-#endif
 typedef int(*comm_t)(char*, void*);
 
 comm_t commands[NCOMMANDS];
 
 char** users;
 char** nicks;
-char * _IRC_UnPipelineCommands(char *string, char **command, char *str_r)
-{
-    char *p, *q;
 
-    if (string != NULL) p = string;
-    else if (str_r != NULL) p = str_r;
-    else return NULL;
-    if (*p == 0) return NULL;
-
-    if((q = strstr(p,"\r\n"))!=NULL)
-    {
-        q += 2;
-        *command = (char *) malloc((q-p+1)*sizeof(char));
-        if (*command == NULL) return NULL;
-        strncpy(*command,p, q-p);
-        (*command)[q-p] = 0;
-        return q;
-    }
-    else
-    {
-        if(strlen(p) == 0) return NULL;
-        *command = (char *) malloc((strlen(p)+1)*sizeof(char));
-        strcpy(*command, p);
-        (*command)[strlen(p)] = 0;
-        return NULL;
-    }
-}
 void repair_command(char* command) {
     char* i=command;
     while(*i!='\r'&&*(i+1)!='\n') i++;
@@ -50,7 +29,15 @@ void repair_command(char* command) {
     *i='\0';
 }
 
+/**
+  @brief Asocia a un socketd el usuario
+  @param socketd: Socket del usuario
+  @param user: Nombre del usuario
+  @return IRCSVROK en caso adecuado, IRCSVERR (<0) en otro caso
+*/
 int set_user(int socketd, char* user) {
+    /*int sd = get_socketd_byuser(user);
+    if(sd) set_user(sd, NULL);*/
     if(user==NULL) {
       if(users[socketd]) free(users[socketd]);  
       users[socketd]=NULL;
@@ -69,7 +56,15 @@ int set_user(int socketd, char* user) {
     return IRCSVROK;
 }
 
+/**
+  @brief Asocia a un socketd el nick
+  @param socketd: Socket del usuario
+  @param user: Nick del usuario
+  @return IRCSVROK en caso adecuado, IRCSVERR (<0) en otro caso
+*/
 int set_nick(int socketd, char* nick) {
+    /*int sd = get_socketd_bynick(nick);
+    if(sd) set_nick(sd, NULL);*/
     if(nick==NULL) {
         if(nicks[socketd]) free(nicks[socketd]);
         nicks[socketd]=NULL;
@@ -88,6 +83,12 @@ int set_nick(int socketd, char* nick) {
     return IRCSVROK;
 }
 
+/**
+  @brief Asocia a un socketd el nick
+  @param socketd: Socket del usuario
+  @param user: Nick del usuario
+  @return IRCSVROK en caso adecuado, IRCSVERR (<0) en otro caso
+*/
 int get_socketd_byuser(char* user) {
     int i;
     if(user==NULL) return 0;
@@ -101,6 +102,11 @@ int get_socketd_byuser(char* user) {
 
 }
 
+/**
+  @brief Busca el socket de un usuario por nick
+  @param nick: Nick del usuario
+  @return el socket del usuario
+*/
 int get_socketd_bynick(char* nick) {
     int i;
     if(user==NULL) return 0;
@@ -113,14 +119,30 @@ int get_socketd_bynick(char* nick) {
     return 0;
 
 }
+
+/**
+  @brief Devuelve el nick de un usuario
+  @param socketd: El socket del usuario
+  @return El nick del usuario
+*/
 char* get_nick(int socketd) {
     return nicks[socketd];
 }
 
+/**
+  @brief Devuelve el user de un usuario
+  @param socketd: El socket del usuario
+  @return El user del usuario
+*/
 char* get_user(int socketd) {
     return users[socketd];
 }
 
+/**
+  @brief Manejador de las conexiones
+  @param data: Datos de la conexion y el mensaje TCP
+  @return IRCSVR_OK
+*/
 void* handler(void* data) {
 	conn_data* thread_data = (conn_data*) data;
 	char* command="im not empty";
@@ -137,7 +159,7 @@ void* handler(void* data) {
         if(strlen(command)>1) {
             process_command(command, data);
         }
-        if(command!=NULL) free(command); //??
+        //if(command!=NULL) free(command); //??
         next = IRC_UnPipelineCommands(NULL, &command, next);
         syslog(LOG_INFO, "unpipelined: %s", command);
     } while(next!=NULL);
@@ -147,10 +169,16 @@ void* handler(void* data) {
     connection_unblock(thread_data->socketd);
   	free(thread_data->msg);
   	free(thread_data);
-    return 0;	
+    return IRCSVROK;	
 }
 
-
+void do_on_disconnect(void* data) {
+	conn_data* thread_data = (conn_data*) data;
+    quit("QUIT\r\n", data);
+}
+/**
+  @brief Inicializa las llamadas de atencion de los comandos
+*/
 int init_commands() {
     int i=0;
     for(i=0;i<NCOMMANDS;i++)
@@ -173,6 +201,9 @@ int init_commands() {
     commands[KICK]=kick;
 }
 
+/**
+  @brief Inicializa las estructuras
+*/
 int init_memspace() {
     users=malloc(sizeof(char*)*MAX_USERS);
     if(users==NULL) 
@@ -187,6 +218,12 @@ int init_memspace() {
     return IRCSVROK;
 }
 
+/**
+  @brief Procesa un comando
+  @param command: El comando
+  @param data: Datos de las conexion
+  @return IRCSVROK en caso adecuado, IRCSVERR (<0) en otro caso
+*/
 int process_command(char* command, void* data) {
     long ret;
     int i;
@@ -209,12 +246,18 @@ int process_command(char* command, void* data) {
     return commands[ret](command, data);
 }
 
-
+/**
+  @brief Llamada principal del servidor
+  @param argc: Num de argumentos
+  @param argv: Argumentos
+  @return 0
+*/
 int main(int argc, char** argv) {
 	int ret;
     init_commands();   
 	init_memspace();
     if(argc!=2) return -1;
+    set_do_on_disconnect(do_on_disconnect);
 	//daemonize("G-2301-01-irc");
 	ret = server_launch(atoi(argv[1]), handler, NULL);
 	printf("Retorno del servidor: %d\n",ret);

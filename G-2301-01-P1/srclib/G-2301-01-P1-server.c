@@ -26,6 +26,8 @@ pthread_mutex_t mutex_conn;
 fd_set connections, readable, blocked;
 int loop;
 char ips[FD_SETSIZE][16];
+void(*handler_disconnection)(void*) = NULL;
+
 /**
   @brief Añade una conexion al conjunto del select
   @param socketd: Descriptor del socket
@@ -216,6 +218,7 @@ int server_launch(uint16_t port, void*(*handler)(void*), void* more) {
 					switch(tcpsocket_rcv(i, thread_data->msg, DATA_SIZE, &thread_data->len)) {
 						case TCPCONN_CLOSED:
 							connection_rmv(i);
+                            if(handler_disconnection) handler_disconnection(thread_data);
 							tcpsocket_close(i);
 							break;
 						case TCPOK:
@@ -250,5 +253,14 @@ int server_stop() {
     }
     for(i=0;i<FD_SETSIZE; i++) close(i); 
     pthread_mutex_destroy(&mutex_conn);
+    return SERVOK;
+}
+
+/**
+  @brief Para el servidor TCP
+  @return SERVOK si el servidor se para, SERVERR_NRUN si no hay servidor
+*/
+int set_do_on_disconnect(void(*handler)(void*)) {
+    handler_disconnection = handler;
     return SERVOK;
 }

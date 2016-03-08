@@ -29,4 +29,5 @@ int connection_unblock(int socketd);
 int connection_rmv(int socketd);
 int server_stop(); 
 char* get_ip_from_connection(int socketd);
+int set_do_on_disconnect(void(*handler)(void*));
 #endif 
