@@ -43,9 +43,12 @@ $(BIN):%: $(ODIR)/%.o $(LIB)
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 compress: clean doc
-	tar -zcvf $(TAR_FILE) .*
+	rm -rf $(TAR_FILE)
+	rm -rf G-2301-01-P1
+	tar -zcvf ../$(TAR_FILE) ../G-2301-01-P1
+	mv ../$(TAR_FILE) $(TAR_FILE)
 
-doc: all 
+doc: 
 	doxygen
 
 run: G-2301-01-P1-irc_server

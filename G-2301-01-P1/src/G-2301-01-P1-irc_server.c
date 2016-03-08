@@ -21,6 +21,13 @@ comm_t commands[NCOMMANDS];
 
 char** users;
 char** nicks;
+char* timeout;
+
+char running=1;
+pthread_t t_timeout;
+pthread_mutex_t m_users;
+pthread_mutex_t m_nicks;
+pthread_mutex_t m_timeout;
 
 void repair_command(char* command) {
     char* i=command;
@@ -34,25 +41,29 @@ void repair_command(char* command) {
   @param socketd: Socket del usuario
   @param user: Nombre del usuario
   @return IRCSVROK en caso adecuado, IRCSVERR (<0) en otro caso
-*/
+  */
 int set_user(int socketd, char* user) {
-    /*int sd = get_socketd_byuser(user);
-    if(sd) set_user(sd, NULL);*/
+    pthread_mutex_lock(&m_users);
     if(user==NULL) {
-      if(users[socketd]) free(users[socketd]);  
-      users[socketd]=NULL;
-      return IRCSVROK;
+        if(users[socketd]) free(users[socketd]);  
+        users[socketd]=NULL;
+        pthread_mutex_unlock(&m_users);
+        return IRCSVROK;
     } 
-    if(strlen(user)>MAX_USERNAME)
+    if(strlen(user)>MAX_USERNAME) {
+        pthread_mutex_unlock(&m_users);
         return IRCSVRERR_MAXLEN;
+    }
     if(users[socketd]==NULL) {
         users[socketd]=malloc(sizeof(MAX_USERNAME));
-       if(users[socketd]==NULL) {
+        if(users[socketd]==NULL) {
+            pthread_mutex_unlock(&m_users);
             return IRCSVRERR_MALLOC;
-       } 
+        } 
     }
     syslog(LOG_INFO,"set_user: socketd=%d user=%s", socketd, user);
     strcpy(users[socketd], user);
+    pthread_mutex_unlock(&m_users);
     return IRCSVROK;
 }
 
@@ -63,22 +74,26 @@ int set_user(int socketd, char* user) {
   @return IRCSVROK en caso adecuado, IRCSVERR (<0) en otro caso
 */
 int set_nick(int socketd, char* nick) {
-    /*int sd = get_socketd_bynick(nick);
-    if(sd) set_nick(sd, NULL);*/
+    pthread_mutex_lock(&m_nicks);
     if(nick==NULL) {
         if(nicks[socketd]) free(nicks[socketd]);
         nicks[socketd]=NULL;
+        pthread_mutex_unlock(&m_nicks);
         return IRCSVROK; 
     }
 
-    if(strlen(nick)>MAX_NICK)
+    if(strlen(nick)>MAX_NICK) {
+        pthread_mutex_unlock(&m_nicks);
         return IRCSVRERR_MAXLEN;
+    }
     if(nicks[socketd]==NULL) {
         nicks[socketd]=malloc(sizeof(MAX_NICK)+1);
-       if(nicks[socketd]==NULL) {
+        if(nicks[socketd]==NULL) {
+            pthread_mutex_unlock(&m_nicks);
             return IRCSVRERR_MALLOC;
-       } 
+        } 
     }
+    pthread_mutex_unlock(&m_nicks);
     strcpy(nicks[socketd], nick);
     return IRCSVROK;
 }
@@ -92,12 +107,18 @@ int set_nick(int socketd, char* nick) {
 int get_socketd_byuser(char* user) {
     int i;
     if(user==NULL) return 0;
+    pthread_mutex_lock(&m_users);
+    /* Zona critica */
     syslog(LOG_INFO, "get_socketd=%s", user);
     for(i=0;i<MAX_USERS;i++) {
         if(users[i]!=NULL) {
-            if(strcmp(user, users[i]) == 0) return i;
+            if(strcmp(user, users[i]) == 0) {
+                pthread_mutex_unlock(&m_users);
+                return i;
+            }
         }
     }
+    pthread_mutex_unlock(&m_users);
     return 0;
 
 }
@@ -109,13 +130,18 @@ int get_socketd_byuser(char* user) {
 */
 int get_socketd_bynick(char* nick) {
     int i;
-    if(user==NULL) return 0;
+    if(nick==NULL) return 0;
+    pthread_mutex_lock(&m_nicks);
     syslog(LOG_INFO, "get_socketd=%s", nick);
     for(i=0;i<MAX_USERS;i++) {
         if(nicks[i]!=NULL) {
-            if(strcmp(nick, nicks[i]) == 0) return i;
+            if(strcmp(nick, nicks[i]) == 0) {
+                pthread_mutex_unlock(&m_nicks);
+                return i;
+            }
         }
     }
+    pthread_mutex_unlock(&m_nicks);
     return 0;
 
 }
@@ -126,7 +152,11 @@ int get_socketd_bynick(char* nick) {
   @return El nick del usuario
 */
 char* get_nick(int socketd) {
-    return nicks[socketd];
+    char* ret;
+    pthread_mutex_lock(&m_nicks);
+    ret = nicks[socketd];
+    pthread_mutex_unlock(&m_nicks);
+    return ret;
 }
 
 /**
@@ -135,9 +165,24 @@ char* get_nick(int socketd) {
   @return El user del usuario
 */
 char* get_user(int socketd) {
-    return users[socketd];
+    char* ret;
+    pthread_mutex_lock(&m_users);
+    ret = users[socketd];
+    pthread_mutex_unlock(&m_users);
+    return ret;
 }
 
+/**
+  @brief Actualiza el contador de timeout de un socketd
+  @param socketd: El socket del usuario
+  @return IRCSVROK
+*/
+int update_timeout(int socketd) {
+    pthread_mutex_lock(&m_timeout);
+    timeout[socketd]=0;
+    pthread_mutex_unlock(&m_timeout);
+    return IRCSVROK;
+}
 /**
   @brief Manejador de las conexiones
   @param data: Datos de la conexion y el mensaje TCP
@@ -150,6 +195,7 @@ void* handler(void* data) {
     if(pthread_detach(pthread_self())!=0) {
 		perror("");
 	}
+    update_timeout(thread_data->socketd);
 	syslog(LOG_INFO, "Mensaje: [%s], len=%lu",(char*) thread_data->msg, strlen(thread_data->msg));
 	next = IRC_UnPipelineCommands (thread_data->msg, &command, NULL);
     repair_command(command);
@@ -161,11 +207,10 @@ void* handler(void* data) {
         }
         //if(command!=NULL) free(command); //??
         next = IRC_UnPipelineCommands(NULL, &command, next);
-        syslog(LOG_INFO, "unpipelined: %s", command);
     } while(next!=NULL);
     
     
-	syslog(LOG_INFO, "Negra caderona <3");
+	//syslog(LOG_INFO, "Negra caderona <3");
     connection_unblock(thread_data->socketd);
   	free(thread_data->msg);
   	free(thread_data);
@@ -213,9 +258,54 @@ int init_memspace() {
         free(users);
         return IRCSVRERR_MALLOC;
     }
+    timeout=malloc(sizeof(char)*MAX_USERS);
+    if(timeout==NULL) {
+        free(users);
+        free(nicks);
+        return IRCSVRERR_MALLOC;
+    }
     bzero(users, sizeof(char*)*MAX_USERS);
     bzero(nicks, sizeof(char*)*MAX_USERS);
+    bzero(timeout, sizeof(char)*MAX_USERS);
+    if(pthread_mutex_init(&m_users, NULL)) {
+        free(users);
+        free(nicks);
+        free(timeout);
+        return IRCSVRERR_MALLOC;
+    }
+    if(pthread_mutex_init(&m_nicks, NULL)) {
+        free(users);
+        free(nicks);
+        free(timeout);
+        pthread_mutex_destroy(&m_users);
+        return IRCSVRERR_MALLOC;
+    } 
+    if(pthread_mutex_init(&m_users, NULL)) {
+        free(users);
+        free(nicks);
+        free(timeout);
+        pthread_mutex_destroy(&m_users);
+        pthread_mutex_destroy(&m_nicks);
+        return IRCSVRERR_MALLOC;
+    }
     return IRCSVROK;
+}
+
+/**
+  @brief Borra las estructuras auxiliares del servidor
+*/
+int free_memspace() {
+    int i;
+    for(i=0;i<MAX_USERS;i++) {
+        if(users[i]) free(users[i]);
+        if(nicks[i]) free(nicks[i]);
+    }
+    free(users);
+    free(nicks);
+    free(timeout);
+    pthread_mutex_destroy(&m_timeout);
+    pthread_mutex_destroy(&m_nicks);
+    pthread_mutex_destroy(&m_nicks);
 }
 
 /**
@@ -246,6 +336,34 @@ int process_command(char* command, void* data) {
     return commands[ret](command, data);
 }
 
+void* timeout_thread(void* data) {
+    int i;
+    conn_data d;
+    char ping_msg[]="PING LAG1234567890\r\n";
+    while(running) {
+        printf("Timeout try\n");
+        //pthread_mutex_lock(&m_timeout);
+        //pthread_mutex_lock(&m_users);
+        
+        for(i=0;i<MAX_USERS;i++) {
+            if((timeout[i]==1)&&get_user(i)) {
+                connection_block(i);
+                tcpsocket_snd(i, ping_msg, strlen(ping_msg));
+                connection_unblock(i);
+            }
+
+            if((timeout[i]==2)&&get_user(i)) { 
+                d.socketd=i;
+                quit("QUIT :Timeout\r\n", &d);
+            }
+            (timeout[i])++;
+        }
+        //pthread_mutex_unlock(&m_users);
+        //pthread_mutex_unlock(&m_timeout);
+        sleep(IRCSVR_TIMEOUT);
+    }
+}
+
 /**
   @brief Llamada principal del servidor
   @param argc: Num de argumentos
@@ -255,14 +373,22 @@ int process_command(char* command, void* data) {
 int main(int argc, char** argv) {
 	int ret;
     init_commands();   
-	init_memspace();
+
+	if(init_memspace()<0) {
+        printf("Critical error initializing structures\n");
+        return -2;
+    }
     if(argc!=2) return -1;
     set_do_on_disconnect(do_on_disconnect);
 	//daemonize("G-2301-01-irc");
+    if(pthread_create(&t_timeout, NULL, timeout_thread, NULL)!=0) {
+        printf("Critical error initializing structures\n");
+        return -2;
+    }
 	ret = server_launch(atoi(argv[1]), handler, NULL);
 	printf("Retorno del servidor: %d\n",ret);
 	syslog(LOG_INFO, "Retorno del servidor: %d",ret);
     server_stop();
-    close(3);
-    perror("");
+    running = 0;
+    free_memspace();
 }

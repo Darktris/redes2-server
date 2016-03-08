@@ -78,7 +78,7 @@ int user(char* command, void*more) {
             syslog(LOG_INFO, "user: malloc");
             break;
         case IRCERR_USERUSED: 
-            set_user(data->socketd, user);
+            //set_user(data->socketd, user);
             syslog(LOG_INFO, "user: user being used user=%s",user);
             break;
         case IRCERR_NICKUSED:
@@ -208,6 +208,7 @@ int pong(char* command, void* more) {
 int join(char* command, void* more) {
     conn_data* data = (conn_data*) more;
     char* prefix, *prefix2, *channel, *key, *msg, *comm;
+    char* topic;
     char comm2[512];
     IRCParse_Join (command, &prefix, &channel, &key, &msg);
     IRC_ComplexUser1459 (&prefix2, get_nick(data->socketd), get_user(data->socketd), IRCTADUser_GetHostByUser(get_user(data->socketd)), NULL);
@@ -261,6 +262,15 @@ int join(char* command, void* more) {
                 IRCMsg_Join (&comm, prefix2, NULL, NULL, channel);
                 tcpsocket_snd(data->socketd, comm, strlen(comm));
                 if(comm) free(comm);
+                time_t t;
+                topic = IRCTADChan_GetTopic(channel, &t);
+                if (topic!=NULL) {
+                    IRCMsg_RplTopic(&comm, prefix2,get_nick(data->socketd) , channel,topic);
+                    tcpsocket_snd(data->socketd, comm, strlen(comm));
+                    free(comm);
+                }
+                
+                //if(prefix2) free(prefix2);
                 if(prefix) free(prefix);
                 if(key) free(key);
                 if(msg) free(msg);
@@ -584,8 +594,8 @@ int quit(char* command, void* more) {
     IRC_ComplexUser1459 (&prefix2, get_nick(data->socketd), get_user(data->socketd), IRCTADUser_GetHostByUser(get_user(data->socketd)), NULL);
     IRCMsg_Quit (&comm, prefix2, msg);
     syslog(LOG_INFO, "quit: rply=%s, user=%s", comm, get_user(data->socketd));
-    IRCTAD_ListChannelsOfUser (get_user(data->socketd), &list, &n);
-    /* if(list) {
+    /*IRCTAD_ListChannelsOfUser (get_user(data->socketd), &list, &n);
+    if(list) {
         for(i=0;i<n;i++) {
             syslog(LOG_INFO, "quit: list[i]=%s", list[i]);
             IRCTAD_ListUsersOnChannel (list[i], &users, &u);
@@ -593,14 +603,14 @@ int quit(char* command, void* more) {
                 socketd = get_socketd_byuser(users[j]);
                 if(socketd!=data->socketd) {
                     connection_block(socketd);
-                    tcpsocket_snd(socketd, comm, strlen(comm));
+                    //tcpsocket_snd(socketd, comm, strlen(comm));
                     connection_unblock(socketd);
                 }
             }
-            if(users) IRCTAD_FreeListUsersOnChannel (users, u);
-            //IRCTAD_PartChannel(list[i], get_user(data->socketd));
+            //if(users) IRCTAD_FreeListUsersOnChannel (users, u);
+            IRCTAD_PartChannel(list[i], get_user(data->socketd));
         }
-        if(list) IRCTAD_FreeListChannelsOfUser(list, n);
+        //if(list) IRCTAD_FreeListChannelsOfUser(list, n);
     }*/
     tcpsocket_snd(data->socketd, comm, strlen(comm));
     if(IRCTAD_Quit(get_user(data->socketd))<0) 
