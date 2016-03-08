@@ -332,33 +332,30 @@ int mode(char* command, void* more) {
     long umode;
     IRCParse_Mode(command, &prefix, &channel, &mode, &user);
     syslog(LOG_INFO,"mode: channel=%s mode=%s user=%s", channel, mode, user);
-    if(mode==NULL) { /* Get Mode TODO*/
-
-    }else {
-        umode=IRCTAD_GetUserModeOnChannel(channel, get_user(data->socketd));
-        if(umode&IRCUMODE_OPERATOR) {
-            switch(IRCTADChan_SetMode(channel, mode) ){
-                case IRCERR_INVALIDCHANNELNAME:
-                    break;
-                case IRC_OK:
-                    switch(mode[1]) {
-                        case '+':
-                            switch (mode[2]) {
-                                case 'k':
-                                    IRCTADChan_SetPassword (channel, user);
-                                    break;
-                                default:
-                                    break;
-                            }
-                            break;
-                        case '-':
-                            break;
-                    } 
-                    IRC_ComplexUser1459 (&prefix2, get_nick(data->socketd), get_user(data->socketd), IRCTADUser_GetHostByUser(get_user(data->socketd)), NULL);
-                    IRCMsg_Mode (&comm, prefix2,channel, mode, get_user(data->socketd));
-                    tcpsocket_snd(data->socketd, comm, strlen(comm));
-            } 
-        }
+    if(mode==NULL) return 0; /* Get Mode TODO*/
+    umode=IRCTAD_GetUserModeOnChannel(channel, get_user(data->socketd));
+    if(umode&IRCUMODE_OPERATOR) {
+        switch(IRCTADChan_SetMode(channel, mode) ){
+            case IRCERR_INVALIDCHANNELNAME:
+                break;
+            case IRC_OK:
+                switch(mode[1]) {
+                    case '+':
+                        switch (mode[2]) {
+                            case 'k':
+                                IRCTADChan_SetPassword (channel, user);
+                                break;
+                            default:
+                                break;
+                        }
+                        break;
+                    case '-':
+                        break;
+                } 
+                IRC_ComplexUser1459 (&prefix2, get_nick(data->socketd), get_user(data->socketd), IRCTADUser_GetHostByUser(get_user(data->socketd)), NULL);
+                IRCMsg_Mode (&comm, prefix2,channel, mode, get_user(data->socketd));
+                tcpsocket_snd(data->socketd, comm, strlen(comm));
+        } 
     }
 }
 /**
