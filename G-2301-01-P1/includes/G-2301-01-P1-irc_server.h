@@ -13,7 +13,7 @@
 
 
 #define IRCSVR_MOTD "motd"
-#define IRCSVR_TIMEOUT 15
+#define IRCSVR_TIMEOUT 30
 #define IRCSVR_NAME "eps.irc.jp"
 #define IRCSVR_INFO "El mejor servidor IRC, ¿no?"
 
