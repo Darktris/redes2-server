@@ -24,6 +24,7 @@ char** nicks;
 char* timeout;
 
 char running=1;
+char path_motd[256]="/tmp/irc_tmp";
 pthread_t t_timeout;
 pthread_mutex_t m_users;
 pthread_mutex_t m_nicks;
@@ -36,6 +37,13 @@ void repair_command(char* command) {
     *i='\0';
 }
 
+/**
+  @brief Devuelve el path del MOTD
+  @return Dicho path al fichero
+  */
+char* get_motd_path() {
+    return path_motd;
+}
 /**
   @brief Asocia a un socketd el usuario
   @param socketd: Socket del usuario
@@ -336,14 +344,18 @@ int process_command(char* command, void* data) {
     return commands[ret](command, data);
 }
 
+/**
+  @brief Hilo de desconexion por timeout
+  @param data: NULL
+  @return No devuelve ningun valor
+*/
 void* timeout_thread(void* data) {
     int i;
     conn_data d;
     char ping_msg[]="PING LAG1234567890\r\n";
     while(running) {
         printf("Timeout try\n");
-        //pthread_mutex_lock(&m_timeout);
-        //pthread_mutex_lock(&m_users);
+        pthread_mutex_lock(&m_timeout);
         
         for(i=0;i<MAX_USERS;i++) {
             if((timeout[i]==1)&&get_user(i)) {
@@ -358,8 +370,7 @@ void* timeout_thread(void* data) {
             }
             (timeout[i])++;
         }
-        //pthread_mutex_unlock(&m_users);
-        //pthread_mutex_unlock(&m_timeout);
+        pthread_mutex_unlock(&m_timeout);
         sleep(IRCSVR_TIMEOUT);
     }
 }
@@ -372,6 +383,8 @@ void* timeout_thread(void* data) {
 */
 int main(int argc, char** argv) {
 	int ret;
+    char sh_comm[512];
+
     init_commands();   
 
 	if(init_memspace()<0) {
@@ -380,6 +393,11 @@ int main(int argc, char** argv) {
     }
     if(argc!=2) return -1;
     set_do_on_disconnect(do_on_disconnect);
+    if(fork()==0) {
+        sprintf(sh_comm, "cp -v %s %s", IRCSVR_MOTDFILE, path_motd);
+        system(sh_comm);
+        return 0;
+    }
 	//daemonize("G-2301-01-irc");
     if(pthread_create(&t_timeout, NULL, timeout_thread, NULL)!=0) {
         printf("Critical error initializing structures\n");

@@ -12,7 +12,8 @@
 #define IRCSVRERR_ARGS -3
 
 
-#define IRCSVR_MOTD "motd"
+#define IRCSVR_MOTDFILE "motd"
+#define IRCSVR_MOTD get_motd_path()
 #define IRCSVR_TIMEOUT 30
 #define IRCSVR_NAME "eps.irc.jp"
 #define IRCSVR_INFO "El mejor servidor IRC, ¿no?"
@@ -22,6 +23,7 @@ int set_user(int socketd, char* user);
 int set_nick(int socketd, char* nick);
 int get_socketd_bynick(char* nick);
 int get_socketd_byuser(char* user);
+char* get_motd_path();
 char* get_user(int socketd); 
 char* get_nick(int socketd); 
 #endif
