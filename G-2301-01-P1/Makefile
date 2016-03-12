@@ -51,10 +51,15 @@ compress: clean doc
 doc: 
 	doxygen
 
+kill:
+	pkill G-2301-01-P1-ir
+
 run: G-2301-01-P1-irc_server
 	./G-2301-01-P1-irc_server 6667
+
 log: 
-	tail -F /var/log/syslog | grep irc_server
+	tail -F /var/log/syslog | grep irc
+
 .PHONY: clean
 clean:
 	@rm -frv $(BIN) $(LIB) $(OBJ) $(LOBJ) 

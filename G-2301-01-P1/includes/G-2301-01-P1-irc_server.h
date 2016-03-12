@@ -13,10 +13,11 @@
 
 
 #define IRCSVR_MOTDFILE "motd"
+#define IRCSVR_CHANFILE "channels"
 #define IRCSVR_MOTD get_motd_path()
-#define IRCSVR_TIMEOUT 30
-#define IRCSVR_NAME "eps.irc.jp"
-#define IRCSVR_INFO "El mejor servidor IRC, ¿no?"
+#define IRCSVR_TIMEOUT 40
+#define IRCSVR_NAME "deathStar.empire.sw"
+#define IRCSVR_INFO "Best IRC Server in the whole Empire"
 
 int process_command(char* command, void* data);
 int set_user(int socketd, char* user);

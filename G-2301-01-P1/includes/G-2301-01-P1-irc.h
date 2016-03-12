@@ -17,6 +17,7 @@ int away(char* command, void* more);
 int whois(char* command, void* more);
 int kick(char* command, void* more);
 int mode(char* command, void* more);
+int who(char* command, void* more);
 int no_command(char* command, void* more);
 
 #endif 

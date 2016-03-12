@@ -252,6 +252,7 @@ int init_commands() {
     commands[WHOIS]=whois;
     commands[MODE]=mode;
     commands[KICK]=kick;
+    commands[WHO]=who;
 }
 
 /**
@@ -354,7 +355,6 @@ void* timeout_thread(void* data) {
     conn_data d;
     char ping_msg[]="PING LAG1234567890\r\n";
     while(running) {
-        printf("Timeout try\n");
         pthread_mutex_lock(&m_timeout);
         
         for(i=0;i<MAX_USERS;i++) {
@@ -375,6 +375,46 @@ void* timeout_thread(void* data) {
     }
 }
 
+int read_channels() {
+    FILE* f;
+    char line[512], *p;
+    char channel[20], mode[10], pass[20], topic[100];
+    char *mode_c, *pass_c, *topic_c;
+    int limit, i;
+    char f_chan, f_pass, f_mode, f_topic;
+ 
+    f = fopen(IRCSVR_CHANFILE, "r");
+    if(!f) return 0;
+    fgets(line, 511, f);
+    line[511]=0;
+    if(!(line[0]='%')) {
+    }
+
+    while(fgets(line, 511, f)) {
+        line[511]=0;
+        p = strtok(line," \t\n");
+        i=0;
+        topic[0]=0;
+        f_chan = f_mode = f_pass = limit = 0;
+        while(p) {
+           if(i==0) if(sscanf(p, "%s", channel)==1) f_chan=1; 
+           if(i==1) if(sscanf(p, "%s", mode)==1) f_mode=1; 
+           if(i==2) if(sscanf(p, "%s", pass)==1) f_pass=1;
+           if(i==3) limit = atoi(p);//if(sscanf(p, "%d", &limit)!=1) limit=0;
+           if(i==4) strcat(topic, p);
+           i++; p = strtok(NULL, " \t\n");
+        }
+        f_topic = strlen(topic);
+        if(!f_chan) continue;
+        if(!f_mode) {mode_c = NULL;}else{mode_c = mode;} 
+        if(!f_pass) {pass_c = NULL;}else{pass_c = pass;} 
+        if(!f_topic) {topic_c = NULL;}else{topic_c = topic;} 
+        if(!strcmp(pass_c, "%")) pass_c=NULL;
+        if(!strcmp(topic_c, "%")) topic_c=NULL;
+        IRCTADChan_Add(channel, mode_c, NULL, pass_c, limit, topic_c);
+        IRCTAD_ShowAll();
+    }
+}
 /**
   @brief Llamada principal del servidor
   @param argc: Num de argumentos
@@ -384,26 +424,41 @@ void* timeout_thread(void* data) {
 int main(int argc, char** argv) {
 	int ret;
     char sh_comm[512];
+    unsigned long port;
+    if(argc!=2) {
+        printf("Use: %s <Port>", argv[0]);
+        return 0;
+    }
 
+    if(sscanf(argv[1],"%lu", &port)!=1) {
+        printf("Use: %s <Port>", argv[0]);
+        return 0;
+    }
+
+    printf(COLOR_YELLOW "\t\tWelcome to %s\n" COLOR_RESET, IRCSVR_NAME);
+    printf(COLOR_YELLOW "\tWe destroyed Alderaan due to a bug with QUIT\n" COLOR_RESET);
     init_commands();   
-
+    
+    printf(COLOR_GREEN "<<Setting up environment>>\n" COLOR_RESET);
 	if(init_memspace()<0) {
-        printf("Critical error initializing structures\n");
+        printf(COLOR_RED "Critical error initializing structures\n" COLOR_RESET);
         return -2;
     }
-    if(argc!=2) return -1;
     set_do_on_disconnect(do_on_disconnect);
+    read_channels();
+    printf(COLOR_GREEN "<<Copying conf files in temporal files. Please be sure the directory /tmp/ exists>>\n" COLOR_RESET);
     if(fork()==0) {
-        sprintf(sh_comm, "cp -v %s %s", IRCSVR_MOTDFILE, path_motd);
+        sprintf(sh_comm, "cp %s %s", IRCSVR_MOTDFILE, path_motd);
         system(sh_comm);
         return 0;
     }
-	//daemonize("G-2301-01-irc");
     if(pthread_create(&t_timeout, NULL, timeout_thread, NULL)!=0) {
-        printf("Critical error initializing structures\n");
+        printf(COLOR_RED "Critical error initializing structures\n" COLOR_RESET);
         return -2;
     }
-	ret = server_launch(atoi(argv[1]), handler, NULL);
+    printf(COLOR_GREEN "<<Launching server in daemon mode>>" COLOR_RESET);
+    daemonize("G-2301-01-irc");
+	ret = server_launch(port, handler, NULL);
 	printf("Retorno del servidor: %d\n",ret);
 	syslog(LOG_INFO, "Retorno del servidor: %d",ret);
     server_stop();

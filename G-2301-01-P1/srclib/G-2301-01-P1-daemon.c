@@ -32,8 +32,8 @@ int daemonize(char* srvcid) {
 
     umask(0);
     setlogmask(LOG_UPTO(LOG_INFO));
-    sprintf(buf,"%s:",srvcid);
-    openlog(buf,LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL3);
+    sprintf(buf,"[%s]:",srvcid);
+    openlog(buf,LOG_CONS | LOG_NDELAY, LOG_LOCAL3);
     syslog(LOG_INFO, "Service started!");
 
     if(setsid()<0) {

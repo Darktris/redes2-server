@@ -1,0 +1,3 @@
+%channel    mode    pass    limit   topic
+#permchan1  %       %        2      asdjasidj
+#permchan2  t       jdl       42     %
