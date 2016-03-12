@@ -20,7 +20,7 @@
   @return Ningún valor definido, la función controlan el error de manera interna
 */
 int nick(char* command, void* more) {
-    char* prefix, *nick, comm[512]={0}, *prefix2, *msg;
+    char* prefix, *nick, comm[512]={0}, *prefix2, *msg, *comm2;
     conn_data* data = (conn_data*) more;
     IRCParse_Nick (command,&prefix,&nick, &msg);
 
@@ -33,8 +33,13 @@ int nick(char* command, void* more) {
     }else {
         /* Cambio de nick */
         switch(IRCTADUser_SetNickByUser (nick, get_user(data->socketd))) {
+            default: 
+                syslog(LOG_INFO, "nick: error");
             case IRCERR_INVALIDNICK:
                 syslog(LOG_INFO, "nick: invalid nick");
+                IRCMsg_ErrNickNameInUse (&comm2, IRCSVR_NAME, get_nick(data->socketd), nick);
+                tcpsocket_snd(data->socketd, comm2, strlen(comm2));
+                free(comm2);
                 break;
             case IRC_OK:
                 IRC_ComplexUser1459 (&prefix2, get_nick(data->socketd), get_user(data->socketd), IRCTADUser_GetHostByUser(get_user(data->socketd)), NULL);
@@ -43,9 +48,6 @@ int nick(char* command, void* more) {
                 tcpsocket_snd(data->socketd, comm, strlen(comm));
                 set_nick(data->socketd, nick);
                 if(prefix2) free(prefix2);
-                break;
-            default: 
-                syslog(LOG_INFO, "nick: invalid user");
                 break;
         }
         if(nick) free(nick);
@@ -70,49 +72,51 @@ int user(char* command, void*more) {
     switch(IRCTADUser_Add(user, nick, realname, NULL, server, get_ip_from_connection(data->socketd))) {
         case IRC_OK:
             set_user(data->socketd,user);
+            IRCMsg_RplWelcome (&comm,IRCSVR_NAME, nick,nick, user, server);
+            tcpsocket_snd(data->socketd, comm, strlen(comm));
+            if(comm) free(comm);
+            motd("motd\r\n", more);
             syslog(LOG_INFO, "user: User successfully added user=%s",user);
             break;
-        case IRCERR_NOENOUGHMEMORY:
-            syslog(LOG_INFO, "user: malloc");
-            break;
         case IRCERR_USERUSED: 
-            //set_user(data->socketd, user);
             syslog(LOG_INFO, "user: user being used user=%s",user);
-            break;
-        case IRCERR_NICKUSED:
-            syslog(LOG_INFO, "user: nick being used");
-            break;
         case IRCERR_REALNAMEUSED:
             syslog(LOG_INFO, "user: realn being used");
-            break;
-        case IRCERR_INVALIDUSER:
-            syslog(LOG_INFO, "user: invalid user");
-            break;
-        case IRCERR_INVALIDNICK:
+        case IRCERR_NICKUSED:
             syslog(LOG_INFO, "user: invalid nick");
-            break;
-        case IRCERR_INVALIDREALNAME:
-            syslog(LOG_INFO, "user: invalid realname");
-            break;
-        case IRCERR_INVALIDHOST:
-            syslog(LOG_INFO, "user: invalid host");
-            break;
-        case  IRCERR_INVALIDIP:
-            syslog(LOG_INFO, "user: invalid ip");
+            IRCMsg_ErrNickNameInUse (&comm, IRCSVR_NAME, get_nick(data->socketd), nick);
+            tcpsocket_snd(data->socketd, comm, strlen(comm));
+            free(comm);
             break;
         default:
-            syslog(LOG_INFO, "Error IRCTADUser_Add");
+            IRCMsg_ErrUnavailResource (&comm, IRCSVR_NAME, nick, nick);
+            tcpsocket_snd(data->socketd, comm, strlen(comm));
+            free(comm);
+            /*case IRCERR_INVALIDUSER:
+              syslog(LOG_INFO, "user: invalid user");
+              break;
+              case IRCERR_INVALIDNICK:
+              syslog(LOG_INFO, "user: invalid nick");
+              break;
+              case IRCERR_INVALIDREALNAME:
+              syslog(LOG_INFO, "user: invalid realname");
+              break;
+              case IRCERR_INVALIDHOST:
+              syslog(LOG_INFO, "user: invalid host");
+              break;
+              case  IRCERR_INVALIDIP:
+              syslog(LOG_INFO, "user: invalid ip");
+              break;
+              default:
+              syslog(LOG_INFO, "Error IRCTADUser_Add");
+              */
     }
 
-    IRCMsg_RplWelcome (&comm,IRCSVR_NAME, nick,nick, user, server);
-    tcpsocket_snd(data->socketd, comm, strlen(comm));
-    motd("motd\r\n", more);
     if(prefix) free(prefix);
     if(user) free(user);
     if(modehost) free(modehost);
     if(server) free(server);
     if(realname) free(realname);
-    if(comm) free(comm);
 }
 
 /**
@@ -207,7 +211,10 @@ int join(char* command, void* more) {
     conn_data* data = (conn_data*) more;
     char* prefix, *prefix2, *channel, *key, *msg, *comm;
     char* topic;
+    char** list, l[300];
+    long i, n, umode;
     char comm2[512];
+    time_t t;
     IRCParse_Join (command, &prefix, &channel, &key, &msg);
     IRC_ComplexUser1459 (&prefix2, get_nick(data->socketd), get_user(data->socketd), IRCTADUser_GetHostByUser(get_user(data->socketd)), NULL);
     if(channel==NULL) {
@@ -253,6 +260,7 @@ int join(char* command, void* more) {
                 break;
             default:
                 syslog(LOG_INFO, "join: unknown error but joining");
+                break;
             case IRC_OK:
                 /* Devolver mensaje Join con prefix el prefix del usuario */
                 // prefijo complejo  + mensaje join + rpl_topic + rpl_namereply
@@ -260,15 +268,28 @@ int join(char* command, void* more) {
                 IRCMsg_Join (&comm, prefix2, NULL, NULL, channel);
                 tcpsocket_snd(data->socketd, comm, strlen(comm));
                 if(comm) free(comm);
-                time_t t;
                 topic = IRCTADChan_GetTopic(channel, &t);
                 if (topic!=NULL) {
                     IRCMsg_RplTopic(&comm, prefix2,get_nick(data->socketd) , channel,topic);
                     tcpsocket_snd(data->socketd, comm, strlen(comm));
                     free(comm);
                 }
-                
-                //if(prefix2) free(prefix2);
+                if(IRCTAD_ListUsersOnChannel (channel, &list, &n)!=IRCERR_NOVALIDCHANNEL) {
+                    for(i=0;i<n;i++) {
+                        umode = IRCTAD_GetUserModeOnChannel(channel, list[i]);
+                        if((umode&IRCUMODE_OPERATOR)==IRCUMODE_OPERATOR) strcat(l, "@");
+                        else if((umode&IRCUMODE_VOICE)==IRCUMODE_VOICE) strcat(l, "+");
+                        strcat(l, IRCTADUser_GetNickByUser(list[i]));
+                        strcat(l, " ");
+                        //tcpsocket_snd(get_socketd_byuser(list[i]), comm, strlen(comm));
+                    }
+                }
+                if(strlen(l)) IRCMsg_RplNamReply (&comm, IRCSVR_NAME, get_nick(data->socketd), "=", channel, l);
+                tcpsocket_snd(data->socketd, comm, strlen(comm));
+                if(comm) free(comm);
+                IRCMsg_RplEndOfNames (&comm, IRCSVR_NAME, get_nick(data->socketd), channel);
+                tcpsocket_snd(data->socketd, comm, strlen(comm));
+                if(comm) free(comm);
                 if(prefix) free(prefix);
                 if(key) free(key);
                 if(msg) free(msg);
@@ -646,6 +667,8 @@ int quit(char* command, void* more) {
         }
         if(list) IRCTAD_FreeListChannelsOfUser(list, n);
     }*/
+    free(comm);
+    IRCMsg_Error (&comm, IRCSVR_NAME, "Terminating");
     tcpsocket_snd(data->socketd, comm, strlen(comm));
     if(IRCTAD_Quit(get_user(data->socketd))<0) 
         syslog(LOG_INFO, "quit: no possible");
