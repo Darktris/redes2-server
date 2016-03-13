@@ -15,7 +15,7 @@
 #define IRCSVR_MOTDFILE "motd"
 #define IRCSVR_CHANFILE "channels"
 #define IRCSVR_MOTD get_motd_path()
-#define IRCSVR_TIMEOUT 40
+#define IRCSVR_TIMEOUT 45
 #define IRCSVR_NAME "deathStar.empire.sw"
 #define IRCSVR_INFO "Best IRC Server in the whole Empire"
 

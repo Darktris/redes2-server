@@ -162,6 +162,9 @@ int server_launch(uint16_t port, void*(*handler)(void*), void* more) {
         return SERVERR_SIGNAL;
     }
 
+    /* Ignoramos posibles malas escrituras en los sockets */
+    signal(SIGPIPE, SIG_IGN);
+
     /* Inicializacion del mutex */
 	if(pthread_mutex_init(&mutex_conn, NULL)) {
         return SERVERR_PTHREAD; 

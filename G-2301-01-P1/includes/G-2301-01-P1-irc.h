@@ -12,12 +12,12 @@ int part(char* command, void* more);
 int topic(char* command, void* more);
 int names(char* command, void* more);
 int quit(char* command, void* more);
+int quit_disc(char* command, void* more);
 int motd(char* command, void* more);
 int away(char* command, void* more);
 int whois(char* command, void* more);
 int kick(char* command, void* more);
 int mode(char* command, void* more);
-int who(char* command, void* more);
 int no_command(char* command, void* more);
 
 #endif 

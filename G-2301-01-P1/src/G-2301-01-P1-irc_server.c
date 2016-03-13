@@ -212,8 +212,8 @@ void* handler(void* data) {
         repair_command(command);
         if(strlen(command)>1) {
             process_command(command, data);
+            //if(command!=NULL) free(command); //??
         }
-        //if(command!=NULL) free(command); //??
         next = IRC_UnPipelineCommands(NULL, &command, next);
     } while(next!=NULL);
     
@@ -227,7 +227,7 @@ void* handler(void* data) {
 
 void do_on_disconnect(void* data) {
 	conn_data* thread_data = (conn_data*) data;
-    quit("QUIT\r\n", data);
+    quit_disc("QUIT\r\n", data);
 }
 /**
   @brief Inicializa las llamadas de atencion de los comandos
@@ -252,7 +252,6 @@ int init_commands() {
     commands[WHOIS]=whois;
     commands[MODE]=mode;
     commands[KICK]=kick;
-    commands[WHO]=who;
 }
 
 /**
