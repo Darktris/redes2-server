@@ -1,3 +1,4 @@
 %channel    mode    pass    limit   topic
-#permchan1  %       %        2      asdjasidj
-#permchan2  t       jdl       42     %
+#soper       %       %        10  HRRNinteractivo
+#redes2      t       eloy     42  leyendoRFCs
+#cirel       %      %         %   11>10

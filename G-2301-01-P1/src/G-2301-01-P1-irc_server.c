@@ -252,6 +252,8 @@ int init_commands() {
     commands[WHOIS]=whois;
     commands[MODE]=mode;
     commands[KICK]=kick;
+    commands[TIME]=time_c;
+    commands[VERSION]=version;
 }
 
 /**

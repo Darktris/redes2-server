@@ -18,6 +18,8 @@
 #define IRCSVR_TIMEOUT 45
 #define IRCSVR_NAME "deathStar.empire.sw"
 #define IRCSVR_INFO "Best IRC Server in the whole Empire"
+#define IRCSVR_VERS "0.0.1"
+#define IRCSVR_VERSCOMM "Alpha version. Under testing"
 
 int process_command(char* command, void* data);
 int set_user(int socketd, char* user);
