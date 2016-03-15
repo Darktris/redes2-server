@@ -25,7 +25,7 @@
 pthread_mutex_t mutex_conn;
 fd_set connections, readable, blocked;
 int loop;
-char ips[FD_SETSIZE][16];
+char ips[FD_SETSIZE][18];
 void(*handler_disconnection)(void*) = NULL;
 
 /**
@@ -221,14 +221,20 @@ int server_launch(uint16_t port, void*(*handler)(void*), void* more) {
 					switch(tcpsocket_rcv(i, thread_data->msg, DATA_SIZE, &thread_data->len)) {
 						case TCPCONN_CLOSED:
 							connection_rmv(i);
-                            if(handler_disconnection) handler_disconnection(thread_data);
+                            if(handler_disconnection) {
+                                connection_block(i);
+                                handler_disconnection(thread_data);
+
+                            }
 							tcpsocket_close(i);
+                            connection_unblock(i);
+                            connection_rmv(i);
 							break;
 						case TCPOK:
+                            connection_block(i);
                             thread_data->more=more;
 
                             /* Se bloquea el socket y se lanza hilo de atencion al mensaje */
-							connection_block(i);
                             if(pthread_create(&t, NULL, handler, thread_data)!=0) {
                                 return SERVERR_PTHREAD;
                             }

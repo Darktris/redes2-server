@@ -35,3 +35,7 @@ int _strcmp(const char* a, const char* b) {
     return strcmp(a,b);
     #define strcmp _strcmp
 }
+
+void _free(void* a) {
+return;
+}

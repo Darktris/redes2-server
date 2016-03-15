@@ -206,14 +206,12 @@ void* handler(void* data) {
     update_timeout(thread_data->socketd);
 	syslog(LOG_INFO, "Mensaje: [%s], len=%lu",(char*) thread_data->msg, strlen(thread_data->msg));
 	next = IRC_UnPipelineCommands (thread_data->msg, &command, NULL);
-    repair_command(command);
+    //repair_command(command);
     syslog(LOG_INFO, "unpipelined: %s, len=%lu", command, strlen(command));
     do { 
-        repair_command(command);
-        if(strlen(command)>1) {
-            process_command(command, data);
-            //if(command!=NULL) free(command); //??
-        }
+        //repair_command(command);
+        process_command(command, data);
+        if(command!=NULL) free(command); //??
         next = IRC_UnPipelineCommands(NULL, &command, next);
     } while(next!=NULL);
     
@@ -458,7 +456,7 @@ int main(int argc, char** argv) {
         return -2;
     }
     printf(COLOR_GREEN "<<Launching server in daemon mode>>" COLOR_RESET);
-    daemonize("G-2301-01-irc");
+    //daemonize("G-2301-01-irc");
 	ret = server_launch(port, handler, NULL);
 	printf("Retorno del servidor: %d\n",ret);
 	syslog(LOG_INFO, "Retorno del servidor: %d",ret);

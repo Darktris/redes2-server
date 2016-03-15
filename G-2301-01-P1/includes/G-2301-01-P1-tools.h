@@ -13,5 +13,6 @@
 int _strcmp(const char* a, const char* b);
 #define strlen _strlen
 size_t _strlen(const char* s);
-
+#define free _free
+void _free(void* a);
 #endif 

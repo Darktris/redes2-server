@@ -81,7 +81,7 @@ int client_tcpsocket_open(uint16_t port, int* socketd, char* hostname) {
     if(dest==NULL) {
         return TCPERR_NOHOST;
     }
-    /* Datos del  */
+    /* Datos del socket */
     addr.sin_family = AF_INET;         
     addr.sin_port = htons(port); 
     bcopy((char *)dest->h_addr, &addr.sin_addr.s_addr, dest->h_length); 
@@ -109,7 +109,7 @@ int tcpsocket_accept(int socketd, tcpsocket_args* args) {
     }
 
     /* Acepta la conexión */
-    args->acceptd=accept(socketd,(struct sockaddr *)&args->client,&args->clientlen);
+    args->acceptd=accept(socketd,(struct sockaddr *)&(args->client),&(args->clientlen));
     if(acceptd==-1) {
         return TCPERR_ACCEPT;
     }

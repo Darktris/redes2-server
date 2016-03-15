@@ -165,7 +165,7 @@ int list(char* command, void* more) {
         }
     }
 
-    IRCTADChan_FreeList (list, n);
+    //IRCTADChan_FreeList (list, n);
     IRCMsg_RplListEnd(&comm2, IRCSVR_NAME,get_nick(data->socketd));   
     tcpsocket_snd(data->socketd, comm2, strlen(comm2));
     if(comm2) free(comm2);
@@ -192,8 +192,8 @@ int ping(char* command, void* more) {
     //if(comm) free(comm);
     if(prefix) free(prefix);
     if(server) free(server);
-    if(msg) free(msg);
-    if(server2) free(server2);
+    //if(msg) free(msg);
+    //if(server2) free(server2);
 }
 
 /**
@@ -274,6 +274,7 @@ int join(char* command, void* more) {
                 // prefijo complejo  + mensaje join + rpl_topic + rpl_namereply
                 syslog(LOG_INFO, "join: joined successfully");
                 IRCMsg_Join (&comm3, prefix2, NULL, NULL, channel);
+                printf("%s\n", comm3);
                 tcpsocket_snd(data->socketd, comm3, strlen(comm3));
                 topic = IRCTADChan_GetTopic(channel, &t);
                 if (topic!=NULL) {
@@ -292,7 +293,6 @@ int join(char* command, void* more) {
                         tcpsocket_snd(get_socketd_byuser(list[i]), comm3, strlen(comm3));
                     }
                 } 
-                //strcat(l,"@yoda");
                 if(strlen(l)) IRCMsg_RplNamReply (&comm, IRCSVR_NAME, get_nick(data->socketd), "=", channel, l);
                 tcpsocket_snd(data->socketd, comm, strlen(comm));
                 if(comm) free(comm);
@@ -324,7 +324,7 @@ int privmsg(char* command, void* more) {
     char** list;
     long n, i;
     int socketd;
-
+    if(!get_user(data->socketd)) return 0;
     IRCParse_Privmsg (command, &prefix, &target, &msg);
     IRC_ComplexUser1459 (&prefix2, get_nick(data->socketd), get_user(data->socketd), IRCTADUser_GetHostByUser(get_user(data->socketd)), NULL);
     IRCMsg_Privmsg (&comm, prefix2,target,msg);
@@ -342,7 +342,7 @@ int privmsg(char* command, void* more) {
                     connection_unblock(socketd);
                 }
             }
-            if(n) IRCTAD_FreeListUsersOnChannel(list, n);
+            //if(n) IRCTAD_FreeListUsersOnChannel(list, n);
         } else {
             //if(get_socketd_bynick(target)!=0) {
             if(get_socketd_bynick(target)!=0) {
@@ -397,6 +397,7 @@ int mode(char* command, void* more) {
 
                 IRCMsg_RplChannelModeIs (&comm, IRCSVR_NAME, get_nick(data->socketd), channel, strmode);
                 tcpsocket_snd(data->socketd, comm, strlen(comm));
+                if(comm) free(comm);
             }
             else {
                 /* Get mode channel */
@@ -413,6 +414,7 @@ int mode(char* command, void* more) {
                 if((cmode&IRCMODE_TOPICOP)==IRCMODE_TOPICOP) strcat(strmode, "t");
                 IRCMsg_RplChannelModeIs (&comm, IRCSVR_NAME, get_nick(data->socketd), channel, strmode);
                 tcpsocket_snd(data->socketd, comm, strlen(comm));
+                if(comm) free(comm);
             }
         }
         else {
@@ -444,6 +446,8 @@ int mode(char* command, void* more) {
                         IRC_ComplexUser1459 (&prefix2, get_nick(data->socketd), get_user(data->socketd), IRCTADUser_GetHostByUser(get_user(data->socketd)), NULL);
                         IRCMsg_Mode (&comm, prefix2,channel, mode, get_user(data->socketd));
                         tcpsocket_snd(data->socketd, comm, strlen(comm));
+                        if(comm) free(comm);
+                        if(prefix2) free(prefix2);
                 } 
             }
         }
@@ -519,7 +523,7 @@ int names(char* command, void* more) {
                     strcat(l, " ");
                 }
                 if(strlen(l)) IRCMsg_RplNamReply (&comm, IRCSVR_NAME, get_nick(data->socketd), "=", channel, l);
-            if(n) IRCTAD_FreeListUsersOnChannel (list, n);
+            //if(n) IRCTAD_FreeListUsersOnChannel (list, n);
             tcpsocket_snd(data->socketd, comm, strlen(comm));
             list=NULL; n=0;
             }
@@ -538,7 +542,7 @@ int names(char* command, void* more) {
                 strcat(l, " ");
             }
         }
-        if(n) IRCTAD_FreeListUsersOnChannel (list, n);
+        //if(n) IRCTAD_FreeListUsersOnChannel (list, n);
         if(strlen(l)) IRCMsg_RplNamReply (&comm, IRCSVR_NAME, get_nick(data->socketd), "=", channel, l);
         tcpsocket_snd(data->socketd, comm, strlen(comm));
         IRCMsg_RplEndOfNames (&comm, IRCSVR_NAME, get_nick(data->socketd), channel);
@@ -575,7 +579,7 @@ int no_command(char* command, void* more) {
 */
 int topic(char* command, void* more) {
     char* prefix, *channel, *topic;
-    char* prefix2, *comm, comm2[512];
+    char* prefix2, *comm, comm2[512]={0};
     long mode, cmode;
     conn_data* data = (conn_data*) more;
     IRCParse_Topic (command, &prefix, &channel, &topic);
@@ -721,7 +725,8 @@ int _quit(char* command, void* more, char disc) {
     IRC_ComplexUser1459 (&prefix2, get_nick(data->socketd), get_user(data->socketd), IRCTADUser_GetHostByUser(get_user(data->socketd)), NULL);
     IRCMsg_Quit (&comm, prefix2, msg);
     syslog(LOG_INFO, "quit: rply=%s, user=%s", comm, get_user(data->socketd));
-    /*IRCTAD_ListChannelsOfUser(get_user(data->socketd), &list, &n);
+    IRCTAD_ListChannelsOfUser(get_user(data->socketd), &list, &n);
+    IRCTAD_ShowAll();
     if(list) {
         for(i=0;i<n;i++) {
             syslog(LOG_INFO, "quit: list[i]=%s", list[i]);
@@ -734,27 +739,27 @@ int _quit(char* command, void* more, char disc) {
                     connection_unblock(socketd);
                 }
             }
-            if(u) IRCTAD_FreeListUsersOnChannel (users, u);
+            //if(u) IRCTAD_FreeListUsersOnChannel (users, u);
 
-            //IRCTAD_PartChannel(list[i], get_user(data->socketd));
+            IRCTAD_PartChannel(list[i], get_user(data->socketd));
         }
-        if(n) IRCTAD_FreeListChannelsOfUser(list, n);
-    }*/
+        //if(n) IRCTAD_FreeListChannelsOfUser(list, n);
+    }
     free(comm);
     IRCMsg_Error (&comm, IRCSVR_NAME, "Terminating");
-    if(disc) /* Proteccion ante posibles servidores que no toleren escrituras en sockets cerrados */
+    if(disc) {/* Proteccion ante posibles servidores que no toleren escrituras en sockets cerrados */
         tcpsocket_snd(data->socketd, comm, strlen(comm));
+        tcpsocket_close(data->socketd);
+        connection_rmv(data->socketd);
+    }
     if(IRCTAD_Quit(get_user(data->socketd))<0) 
         syslog(LOG_INFO, "quit: no possible");
 
 
-    //IRCTADUser_DeleteByUser(get_user(data->socketd));
     //IRCTAD_ShowAll();
     set_user(data->socketd, NULL);
     set_nick(data->socketd, NULL);
     syslog(LOG_INFO, "quit: getuser=%s getnick=%s", get_user(data->socketd), get_nick(data->socketd));
-    connection_rmv(data->socketd);
-    tcpsocket_close(data->socketd);
     if(msg && f_m) free(msg);
     if(prefix) free(prefix);
     if(prefix2) free(prefix2);
@@ -894,11 +899,13 @@ int kick(char* command, void* more) {
         if(comm) free(comm);
     }
     }
+    /*
     if(prefix) free(prefix);
     if(prefix2) free(prefix2);
     if(channel) free(channel);
     if(user) free(user);
     if(comment) free(comment);
+    */
 }
 
 int time_c(char* command, void* more) {
@@ -949,7 +956,7 @@ int notice(char* command, void* more) {
                     connection_unblock(socketd);
                 }
             }
-            if(n) IRCTAD_FreeListUsersOnChannel(list, n);
+            //if(n) IRCTAD_FreeListUsersOnChannel(list, n);
         } else {
             //if(get_socketd_bynick(target)!=0)
             if(get_socketd_bynick(target)!=0) {
