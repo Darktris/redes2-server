@@ -740,8 +740,6 @@ int _quit(char* command, void* more, char disc) {
                 }
             }
             //if(u) IRCTAD_FreeListUsersOnChannel (users, u);
-
-            IRCTAD_PartChannel(list[i], get_user(data->socketd));
         }
         //if(n) IRCTAD_FreeListChannelsOfUser(list, n);
     }
