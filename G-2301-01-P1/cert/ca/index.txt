@@ -1,0 +1,2 @@
+V	170427093114Z		01	unknown	/C=ES/ST=Madrid/O=UAM/OU=EPS/CN=server.uam.es
+V	170427093121Z		02	unknown	/C=ES/ST=Madrid/O=UAM/OU=EPS/CN=client.uam.es
