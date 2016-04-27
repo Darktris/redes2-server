@@ -147,7 +147,7 @@ void sigint_handler_SSL(int sig) {
 int server_launch_SSL(uint16_t port, void*(*handler)(void*), void* more) {
 	int socketd;
 	int set_size=1, i=0;
-	tcpsocket_args args;
+	tcpsocket_args args={0};
 	char* data;
 	size_t len;
     pthread_t t;
@@ -214,6 +214,12 @@ int server_launch_SSL(uint16_t port, void*(*handler)(void*), void* more) {
                         printf("Error al abrir el canal seguro\n");
                         ERR_print_errors_fp(stdout);
                     }
+    if(evaluar_post_connectar_SSL(socketd)) {
+     
+	printf("Error del certificador\n");
+        ERR_print_errors_fp(stderr);
+    }
+ 
                     strcpy(ips[args.acceptd], inet_ntoa(args.client.sin_addr));
 					connection_add_SSL(args.acceptd);
 

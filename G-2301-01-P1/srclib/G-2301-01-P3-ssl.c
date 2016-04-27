@@ -28,6 +28,7 @@ pSSL s_sockets[MAX_FD];
 int inicializar_nivel_SSL() { 
     SSL_load_error_strings();
     SSL_library_init();
+SSLv23_method();
     //OpenSSL_add_all_algorithms();
 }
 
@@ -36,13 +37,14 @@ int inicializar_nivel_SSL() {
   @return SSLERR, SSLOK
   */
 int fijar_contexto_SSL(char* pk, char* cert) {
-    sslctx = SSL_CTX_new( SSLv23_server_method());
+    sslctx = SSL_CTX_new( SSLv23_method());
     if(!sslctx) return SSL_NOCTX;
     if(!SSL_CTX_load_verify_locations(sslctx, FILE_CA_CERTIFICATE, PATH_CA_CERTIFICATE)) return SSL_VERLOCATION;
     SSL_CTX_set_default_verify_paths(sslctx);
     if(SSL_CTX_use_certificate_chain_file(sslctx, cert)!=1) return SSL_CERT;
     if(SSL_CTX_use_PrivateKey_file(sslctx, pk, SSL_FILETYPE_PEM) != 1) return SSL_PKEY;
     SSL_CTX_set_verify(sslctx,SSL_VERIFY_PEER, NULL);
+    return 0;
 }
 /**
   @brief Inicializa el nivel SSL

@@ -20,16 +20,22 @@ int main(int argc, char** argv) {
 
 
     inicializar_nivel_SSL();
-    if(fijar_contexto_SSL(FILE_CLIENT_PKEY, FILE_CLIENT_CERTIFICATE)<0) {
-        FILE* f = fopen("/tmp/err_ssl", "w");
-        //ERR_print_errors_fp(f);
-        fclose(f);
+    if(fijar_contexto_SSL(FILE_CLIENT_CERTIFICATE, FILE_CLIENT_CERTIFICATE)<0) {
+	printf("Error al inicializar el contexto\n");
+        ERR_print_errors_fp(stderr);
         return 0;
     }
 
     client_tcpsocket_open(port, &socketd, argv[2]);
+//    tcpsocket_snd(socketd, "dsasjddsj\nsakjdsjd\n", strlen("dsasjddsj\nsakjdsjd\n"));
     conectar_canal_seguro_SSL(socketd);
+    if(evaluar_post_connectar_SSL(socketd)) {
+     
+	printf("Error del certificador\n");
+        ERR_print_errors_fp(stderr);
+    }
     
+        ERR_print_errors_fp(stderr);
     while(1) {
         gets(buf);
         enviar_datos_SSL(socketd, buf, strlen(buf));
